@@ -2,9 +2,12 @@ package com.example.studntapp
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.view.MenuItem
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
@@ -12,6 +15,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.navigation.NavigationView
 
 open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -54,9 +58,73 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         }
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
-        
+
         // إجبار الأيقونة على اليمين بغض النظر عن اللغة
         toolbar.layoutDirection = View.LAYOUT_DIRECTION_RTL
+
+        // ربط الشريط السفلي العائم
+        setupBottomNav()
+    }
+
+    // ===== الشريط السفلي =====
+    private val goldColor get() = ContextCompat.getColor(this, R.color.gold)
+    private val idleColor = Color.parseColor("#B8FFFFFF") // أبيض 72%
+
+    private fun setupBottomNav() {
+        val tabSchedule = findViewById<LinearLayout?>(R.id.tab_schedule) ?: return
+        val tabMaterials = findViewById<LinearLayout>(R.id.tab_materials)
+        val tabReports = findViewById<LinearLayout>(R.id.tab_reports)
+        val tabProfile = findViewById<LinearLayout>(R.id.tab_profile)
+        val fabHome = findViewById<MaterialCardView>(R.id.fab_home)
+
+        tabSchedule.setOnClickListener {
+            if (this !is CalendarActivity) openTab(Intent(this, CalendarActivity::class.java))
+        }
+        tabMaterials.setOnClickListener {
+            if (this !is MaterialsActivity) openTab(Intent(this, MaterialsActivity::class.java))
+        }
+        tabReports.setOnClickListener {
+            val role = getSharedPreferences("AppSession", Context.MODE_PRIVATE).getString("USER_ROLE", "student")
+            if (role == "teacher") {
+                if (this !is TeacherReportActivity) openTab(Intent(this, TeacherReportActivity::class.java))
+            } else {
+                if (this !is ReportActivity) openTab(Intent(this, ReportActivity::class.java))
+            }
+        }
+        tabProfile.setOnClickListener {
+            if (this !is ProfileActivity) openTab(Intent(this, ProfileActivity::class.java))
+        }
+        fabHome.setOnClickListener {
+            if (this !is DailyReportActivity) openTab(Intent(this, DailyReportActivity::class.java))
+        }
+
+        highlightActiveTab()
+    }
+
+    private fun openTab(intent: Intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        startActivity(intent)
+        overridePendingTransition(0, 0)
+    }
+
+    private fun setTab(tabId: Int, iconId: Int, labelId: Int, active: Boolean) {
+        val color = if (active) goldColor else idleColor
+        findViewById<ImageView?>(iconId)?.setColorFilter(color)
+        findViewById<TextView?>(labelId)?.setTextColor(color)
+    }
+
+    private fun highlightActiveTab() {
+        // افتراضياً كل التبويبات خاملة
+        setTab(R.id.tab_schedule, R.id.icon_schedule, R.id.label_schedule, this is CalendarActivity)
+        setTab(R.id.tab_materials, R.id.icon_materials, R.id.label_materials, this is MaterialsActivity)
+        setTab(R.id.tab_reports, R.id.icon_reports, R.id.label_reports,
+            this is ReportActivity || this is TeacherReportActivity)
+        setTab(R.id.tab_profile, R.id.icon_profile, R.id.label_profile, this is ProfileActivity)
+
+        val onHome = this is DailyReportActivity
+        findViewById<TextView?>(R.id.label_home)?.setTextColor(if (onHome) goldColor else idleColor)
+        findViewById<MaterialCardView?>(R.id.fab_home)?.strokeColor =
+            if (onHome) goldColor else Color.parseColor("#73F7A61B")
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
