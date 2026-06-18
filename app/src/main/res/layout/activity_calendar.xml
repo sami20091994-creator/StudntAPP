@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:orientation="vertical">
+
+    <!-- أزرار التبديل (يومي، أسبوعي، شهري) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_white"
+        app:elevation="2dp"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/btnDaily"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_toggle_active"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="يومي"
+            android:textAlignment="center"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btnWeekly"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_toggle_inactive"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="أسبوعي"
+            android:textAlignment="center"
+            android:textColor="@color/text_grey"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btnMonthly"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_toggle_inactive"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="شهري"
+            android:textAlignment="center"
+            android:textColor="@color/text_grey"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- شريط التنقل (للأسبوعي والشهري) -->
+    <LinearLayout
+        android:id="@+id/layoutNavHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/background_light"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btnPrev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_media_previous"
+            app:tint="@color/text_dark" />
+
+        <TextView
+            android:id="@+id/tvPeriodName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="الفترة"
+            android:textColor="@color/text_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnNext"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_media_next"
+            app:tint="@color/text_dark" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 1. العرض اليومي (التقويم العادي والقائمة) -->
+        <LinearLayout
+            android:id="@+id/viewDaily"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <CalendarView
+                android:id="@+id/calendarView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_white" />
+
+            <TextView
+                android:id="@+id/tvDailyTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_white"
+                android:padding="16dp"
+                android:text="حصص اليوم"
+                android:textColor="@color/primary_blue"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvDaily"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="20dp" />
+        </LinearLayout>
+
+        <!-- 2. العرض الأسبوعي (جدول أوقات وأيام قابل للسحب أفقياً وعمودياً) -->
+        <ScrollView
+            android:id="@+id/viewWeekly"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background_light"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fillViewport="true"
+                android:layoutDirection="rtl">
+
+                <LinearLayout
+                    android:id="@+id/weeklyGrid"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp">
+                    <!-- سيتم توليده برمجياً -->
+                </LinearLayout>
+
+            </HorizontalScrollView>
+        </ScrollView>
+
+        <!-- 3. العرض الشهري (شبكة 7 أيام) -->
+        <ScrollView
+            android:id="@+id/viewMonthly"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background_light"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <GridLayout
+                android:id="@+id/monthlyGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="7"
+                android:padding="4dp"
+                android:layoutDirection="rtl">
+                <!-- سيتم توليده برمجياً -->
+            </GridLayout>
+        </ScrollView>
+
+    </FrameLayout>
+</LinearLayout>

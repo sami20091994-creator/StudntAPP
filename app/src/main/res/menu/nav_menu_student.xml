@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Study Section -->
+    <group android:id="@+id/group_study">
+        <item
+            android:id="@+id/nav_schedule"
+            android:icon="@android:drawable/ic_menu_today"
+            android:title="الجدول الزمني" />
+        <item
+            android:id="@+id/nav_subjects"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="المواد الدراسية" />
+        <item
+            android:id="@+id/nav_online_lectures"
+            android:icon="@android:drawable/ic_menu_camera"
+            android:title="محاضرات أونلاين" />
+        <item
+            android:id="@+id/nav_auto_quizzes"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="الاختبارات الذكية" />
+    </group>
+
+    <!-- Reports Section -->
+    <group android:id="@+id/group_reports">
+        <item
+            android:id="@+id/nav_report"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="التقارير" />
+        <item
+            android:id="@+id/nav_daily_report"
+            android:icon="@android:drawable/ic_menu_day"
+            android:title="التقرير اليومي" />
+        <item
+            android:id="@+id/nav_study_hours"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="دراستي المنزلية" />
+    </group>
+
+    <!-- Account Section -->
+    <group android:id="@+id/group_account">
+        <item
+            android:id="@+id/nav_evaluation"
+            android:icon="@android:drawable/star_on"
+            android:title="التقييمات" />
+        <item
+            android:id="@+id/nav_statement"
+            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:title="كشف الحساب" />
+        <item
+            android:id="@+id/nav_messages"
+            android:icon="@android:drawable/stat_notify_chat"
+            android:title="الرسائل" />
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@android:drawable/ic_popup_reminder"
+            android:title="الإشعارات" />
+    </group>
+
+    <!-- Settings Section -->
+    <group android:id="@+id/group_settings">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="الإعدادات" />
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@android:drawable/ic_menu_close_clear_cancel"
+            android:title="تسجيل الخروج" />
+    </group>
+
+</menu>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="الرئيسية">
+        <menu>
+            <item
+                android:id="@+id/nav_daily_report"
+                android:icon="@android:drawable/ic_menu_today"
+                android:title="التقرير اليومي" />
+        </menu>
+    </item>
+
+    <item android:title="المواد">
+        <menu>
+            <item
+                android:id="@+id/nav_subjects"
+                android:icon="@android:drawable/ic_menu_agenda"
+                android:title="موادي" />
+            <item
+                android:id="@+id/nav_study_hours"
+                android:icon="@android:drawable/ic_menu_recent_history"
+                android:title="دراستي" />
+            <item
+                android:id="@+id/nav_evaluation"
+                android:icon="@android:drawable/star_on"
+                android:title="التقييم" />
+        </menu>
+    </item>
+
+    <item android:title="تقارير">
+        <menu>
+            <item
+                android:id="@+id/nav_report"
+                android:icon="@android:drawable/ic_menu_info_details"
+                android:title="تقرير الأداء" />
+        </menu>
+    </item>
+
+    <item android:title="الجدول">
+        <menu>
+            <item
+                android:id="@+id/nav_schedule"
+                android:icon="@android:drawable/ic_menu_my_calendar"
+                android:title="جدولي" />
+        </menu>
+    </item>
+
+    <item android:title="محاسبة">
+        <menu>
+            <item
+                android:id="@+id/nav_statement"
+                android:icon="@android:drawable/ic_menu_sort_by_size"
+                android:title="كشف الحساب" />
+        </menu>
+    </item>
+
+    <item android:title="الصف الافتراضي">
+        <menu>
+            <item
+                android:id="@+id/nav_online_lectures"
+                android:icon="@android:drawable/ic_menu_camera"
+                android:title="محاضرات أونلاين" />
+            <item
+                android:id="@+id/nav_auto_quizzes"
+                android:icon="@android:drawable/ic_menu_edit"
+                android:title="الاختبارات الذكية" />
+        </menu>
+    </item>
+
+    <item android:title="الإعدادات">
+        <menu>
+            <item
+                android:id="@+id/nav_profile"
+                android:icon="@android:drawable/ic_menu_myplaces"
+                android:title="الملف الشخصي" />
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="تسجيل الخروج" />
+        </menu>
+    </item>
+
+</menu>

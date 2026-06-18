@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Teaching Section -->
+    <group android:id="@+id/group_teaching">
+        <item
+            android:id="@+id/nav_schedule"
+            android:icon="@android:drawable/ic_menu_today"
+            android:title="جدولي التدريسي" />
+        <item
+            android:id="@+id/nav_my_subjects"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="موادي الدراسية" />
+        <item
+            android:id="@+id/nav_students_report"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="تقارير الطلاب" />
+    </group>
+
+    <!-- Financial Section -->
+    <group android:id="@+id/group_financial">
+        <item
+            android:id="@+id/nav_financials"
+            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:title="الحسابات المالية" />
+        <item
+            android:id="@+id/nav_dues"
+            android:icon="@android:drawable/ic_input_add"
+            android:title="مستحقاتي" />
+        <item
+            android:id="@+id/nav_students_payments"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="مدفوعات الطلاب" />
+    </group>
+
+    <!-- Communication Section -->
+    <group android:id="@+id/group_communication">
+        <item
+            android:id="@+id/nav_messages"
+            android:icon="@android:drawable/stat_notify_chat"
+            android:title="الرسائل" />
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@android:drawable/ic_popup_reminder"
+            android:title="الإشعارات" />
+    </group>
+
+    <!-- Settings Section -->
+    <group android:id="@+id/group_settings">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="الإعدادات" />
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@android:drawable/ic_menu_close_clear_cancel"
+            android:title="تسجيل الخروج" />
+    </group>
+
+</menu>
