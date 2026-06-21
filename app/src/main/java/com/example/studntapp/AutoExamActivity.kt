@@ -12,7 +12,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class AutoExamActivity : AppCompatActivity() {
+class AutoExamActivity : ThemedActivity() {
 
     private lateinit var tvExamTitle: TextView
     private lateinit var tvSubjectName: TextView

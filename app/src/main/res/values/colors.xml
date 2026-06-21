@@ -54,4 +54,20 @@
 
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+
+    <!-- ====== الباقات اللونية الخمس (الإعدادات) ====== -->
+    <color name="p_indigo">#4C53A4</color>
+    <color name="p_indigo_dark">#2F358F</color>
+    <color name="p_emerald">#0E9F6E</color>
+    <color name="p_emerald_dark">#067A52</color>
+    <color name="p_royal">#6D28D9</color>
+    <color name="p_royal_dark">#5B21B6</color>
+    <color name="p_ocean">#0E7490</color>
+    <color name="p_ocean_dark">#0B5A70</color>
+    <color name="p_crimson">#9D174D</color>
+    <color name="p_crimson_dark">#7C0F3C</color>
+    <color name="dot_pattern_color">#94A3B8</color>
+    <!-- ألوان لوحات كشف الحساب (نهاري) -->
+    <color name="panel_debit">#FFF0F1</color>
+    <color name="panel_credit">#EAF8F0</color>
 </resources>

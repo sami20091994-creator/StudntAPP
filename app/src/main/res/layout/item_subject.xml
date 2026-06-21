@@ -5,27 +5,42 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="6dp"
-    app:cardCornerRadius="16dp"
+    app:cardBackgroundColor="@color/surface"
+    app:cardCornerRadius="18dp"
     app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="14dp"
         android:gravity="center_vertical">
 
+        <!-- شارة الحالة (تظهر على اليمين في RTL) -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_status_active"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/success_green"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <!-- النص (العنوان + المعلّم) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tvSubjectName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_dark"
+                android:textColor="@color/ink"
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:textDirection="rtl" />
@@ -34,22 +49,25 @@
                 android:id="@+id/tvTeacherName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/text_grey"
+                android:layout_marginTop="3dp"
+                android:textColor="@color/ink_muted"
                 android:textSize="14sp"
                 android:textDirection="rtl" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:background="@drawable/bg_status_active"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:textColor="@color/success_green"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+        <!-- أيقونة المادة الاحترافية (تظهر على اليسار في RTL) -->
+        <FrameLayout
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:background="@drawable/bg_icon_circle">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_subject_book"
+                android:contentDescription="مادة"
+                app:tint="?attr/colorPrimary" />
+        </FrameLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

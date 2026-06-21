@@ -40,6 +40,20 @@ interface ApiService {
 
     @FormUrlEncoded
     @POST("api.php")
+    fun markAllNotificationsRead(
+        @Field("action") action: String = "mark_all_notifications_read",
+        @Field("user_id") userId: Int
+    ): Call<SimpleResponse>
+
+    @FormUrlEncoded
+    @POST("api.php")
+    fun forgotPassword(
+        @Field("action") action: String = "forgot_password",
+        @Field("phone") phone: String
+    ): Call<SimpleResponse>
+
+    @FormUrlEncoded
+    @POST("api.php")
     fun getAvailableAutoExams(
         @Field("action") action: String = "get_auto_exams",
         @Field("student_id") studentId: Int
@@ -183,7 +197,33 @@ interface ApiService {
         @Field("action") action: String = "get_teacher_students_payments",
         @Field("teacher_id") teacherId: Int
     ): Call<StudentPaymentsResponse>
+
+    @FormUrlEncoded
+    @POST("api.php")
+    fun checkVersion(
+        @Field("action") action: String = "check_version",
+        @Field("platform") platform: String = "android"
+    ): Call<VersionResponse>
+
+    @FormUrlEncoded
+    @POST("api.php")
+    fun getAnnouncements(
+        @Field("action") action: String = "get_announcements",
+        @Field("user_id") userId: Int
+    ): Call<AnnouncementResponse>
+
+    // تسجيل رمز FCM للجهاز ليتمكّن السيرفر من إرسال الإشعارات الفورية (بدون اتصال دائم).
+    @FormUrlEncoded
+    @POST("api.php")
+    fun registerFcmToken(
+        @Field("action") action: String = "register_fcm_token",
+        @Field("user_id") userId: Int,
+        @Field("token") token: String,
+        @Field("platform") platform: String = "android"
+    ): Call<SimpleResponse>
 }
+
+data class SimpleResponse(val status: String? = null, val message: String? = null)
 
 // 2. كلاسات البيانات (Models)
 data class LoginResponse(
@@ -210,7 +250,14 @@ data class NotificationData(
     val title: String?,
     val message: String?,
     val date: String? = null,
-    @SerializedName("created_at") val createdAt: String? = null
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("is_read") val isRead: Int? = null,
+    // نوع الإشعار: "message" يعني رسالة محادثة (يفتح المحادثة عند الضغط).
+    val type: String? = null,
+    @SerializedName("sender_id") val senderId: Int? = null,
+    @SerializedName("sender_name") val senderName: String? = null,
+    // نوع المحادثة: "user" أو "group" (افتراضي user).
+    @SerializedName("chat_type") val chatType: String? = null
 )
 
 data class NotificationResponse(
@@ -258,6 +305,29 @@ data class SubmitExamResponse(
 )
 
 data class ApiResponse(val status: String, val message: String?)
+
+// ====== فحص النسخة (إجبار التحديث) ======
+data class VersionResponse(
+    val status: String,
+    @SerializedName("latest_version_code") val latestVersionCode: Int = 0,
+    @SerializedName("latest_version_name") val latestVersionName: String? = null,
+    @SerializedName("force_update") val forceUpdate: Boolean = false,
+    @SerializedName("update_url") val updateUrl: String? = null,
+    val message: String? = null
+)
+
+// ====== الإعلانات / الأخبار ======
+data class AnnouncementResponse(val status: String, val data: List<AnnouncementItem>?)
+data class AnnouncementItem(
+    val id: Int,
+    val title: String?,
+    @SerializedName("summary") val summary: String? = null,
+    @SerializedName("image") val image: String? = null,
+    @SerializedName("content") val content: String? = null,
+    @SerializedName("article_url") val articleUrl: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val tag: String? = null
+)
 
 data class SubjectData(
     @SerializedName("subject_id") val subjectId: Int?,

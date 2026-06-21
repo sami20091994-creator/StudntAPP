@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#E8F5E9" />
+    <!-- شارة شفّافة بيضاء تظهر بوضوح فوق لون الثيم (تباين عالٍ مع النص الأبيض) -->
+    <solid android:color="#40FFFFFF" />
     <corners android:radius="16dp" />
     <padding
         android:left="8dp"

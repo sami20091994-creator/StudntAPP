@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import retrofit2.Call
@@ -97,16 +98,19 @@ class OnlineLecturesAdapter(
             orientation = LinearLayout.VERTICAL
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setPadding(40, 40, 40, 40)
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(ContextCompat.getColor(parent.context, R.color.surface))
         }
 
         val tvTitle = TextView(parent.context).apply {
             id = android.R.id.text1
             textSize = 17f
-            setTextColor(Color.parseColor("#1B1E3A"))
+            setTextColor(ContextCompat.getColor(parent.context, R.color.ink))
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_camera, 0, 0, 0)
-            compoundDrawablePadding = 20
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_nav_lectures, 0, 0, 0)
+            compoundDrawablePadding = 24
+            val tv = android.util.TypedValue()
+            parent.context.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
+            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(tv.data)
         }
 
         val tvSub = TextView(parent.context).apply {
@@ -139,8 +143,8 @@ class OnlineLecturesAdapter(
             holder.divider.setBackgroundColor(Color.parseColor("#fd79a8"))
         } else {
             holder.subtitle.text = "⚪ لا يوجد بث حالياً - الدخول للمساحة والسبورة"
-            holder.subtitle.setTextColor(Color.parseColor("#5B5F7A"))
-            holder.divider.setBackgroundColor(Color.parseColor("#F4F6F9"))
+            holder.subtitle.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.ink_muted))
+            holder.divider.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.line))
         }
 
         holder.itemView.setOnClickListener { onItemClick(item) }

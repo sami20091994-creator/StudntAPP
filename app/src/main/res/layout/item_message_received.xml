@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="2dp"
             android:textStyle="bold"
-            android:textColor="@color/primary_blue"
+            android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             android:visibility="gone" />
 
@@ -46,8 +46,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:layout_marginTop="2dp"
-            android:textColor="@color/text_light"
-            android:textSize="10sp" />
+            android:layout_marginTop="3dp"
+            android:textColor="@color/ink_faint"
+            android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>

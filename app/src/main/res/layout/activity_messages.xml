@@ -14,56 +14,39 @@
         android:orientation="vertical"
         android:visibility="visible">
 
-        <!-- Header -->
-        <com.google.android.material.appbar.AppBarLayout
+        <!-- شريط البحث فقط (العنوان وزر القائمة من شريط الهيكل الموحّد كباقي الشاشات) -->
+        <FrameLayout
+            android:id="@+id/chatListHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/surface_white"
-            app:elevation="2dp">
+            android:background="@color/canvas"
+            android:padding="12dp">
 
-            <LinearLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_height="48dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="@color/surface">
 
-                <TextView
+                <EditText
+                    android:id="@+id/etSearchChats"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="الرسائل والدردشة"
-                    android:textColor="@color/primary_blue"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:gravity="right" />
-
-                <!-- Search Bar -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    android:background="@color/background_light">
-
-                    <EditText
-                        android:id="@+id/etSearchChats"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
-                        android:drawableStart="@android:drawable/ic_menu_search"
-                        android:drawablePadding="12dp"
-                        android:hint="ابحث عن محادثة..."
-                        android:paddingHorizontal="16dp"
-                        android:textSize="14sp"
-                        android:maxLines="1"
-                        android:inputType="text"
-                        android:textColor="@color/text_dark"
-                        android:textColorHint="@color/text_light"
-                        android:gravity="center_vertical"
-                        app:drawableTint="@color/text_light" />
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
-        </com.google.android.material.appbar.AppBarLayout>
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:drawableStart="@android:drawable/ic_menu_search"
+                    android:drawablePadding="12dp"
+                    android:hint="ابحث عن محادثة..."
+                    android:paddingHorizontal="16dp"
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:inputType="text"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/ink_faint"
+                    android:gravity="center_vertical"
+                    app:drawableTint="@color/ink_faint" />
+            </androidx.cardview.widget.CardView>
+        </FrameLayout>
 
         <!-- Conversations List -->
         <androidx.recyclerview.widget.RecyclerView
@@ -86,6 +69,7 @@
 
         <!-- Chat Header -->
         <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/chatRoomHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/surface_white"
@@ -109,7 +93,7 @@
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@android:drawable/ic_menu_revert"
-                        app:tint="@color/primary_blue" />
+                        app:tint="?attr/colorPrimary" />
 
                     <!-- User Info -->
                     <LinearLayout

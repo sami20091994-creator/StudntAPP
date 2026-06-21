@@ -52,7 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="المادة"
-            android:textColor="@color/primary_blue"
+            android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:gravity="right"
             android:layout_marginBottom="12dp" />

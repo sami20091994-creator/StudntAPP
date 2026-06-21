@@ -200,7 +200,7 @@ class CalendarActivity : BaseActivity() {
         val timeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(timeWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setBackgroundColor(Color.parseColor("#F4F6F9")) // background_light
+            setBackgroundColor(col(R.color.canvas))
         }
         timeCol.addView(TextView(this).apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (50 * dpToPx).toInt()) }) // مساحة رأسية فارغة
 
@@ -212,7 +212,7 @@ class CalendarActivity : BaseActivity() {
                 textSize = 10f
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, hourHeightPx)
-                setTextColor(Color.parseColor("#5B5F7A")) // text_grey
+                setTextColor(col(R.color.ink_muted))
             }
             timeCol.addView(tv)
         }
@@ -237,8 +237,8 @@ class CalendarActivity : BaseActivity() {
                 gravity = Gravity.CENTER
                 textSize = 12f
                 textStyle = android.graphics.Typeface.BOLD
-                setTextColor(Color.parseColor("#1B1E3A")) // text_dark
-                setBackgroundColor(Color.parseColor("#E7E8F2")) // divider
+                setTextColor(col(R.color.ink))
+                setBackgroundColor(col(R.color.surface_alt))
                 layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (50 * dpToPx).toInt())
             }
             dayCol.addView(header)
@@ -246,7 +246,7 @@ class CalendarActivity : BaseActivity() {
             // إطار يحمل الحصص داخله
             val frame = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (endHour - startHour + 1) * hourHeightPx)
-                setBackgroundColor(Color.WHITE)
+                setBackgroundColor(col(R.color.surface))
             }
 
             // رسم خطوط الساعات في الخلفية
@@ -255,7 +255,7 @@ class CalendarActivity : BaseActivity() {
                     layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, 1).apply {
                         topMargin = (h - startHour) * hourHeightPx
                     }
-                    setBackgroundColor(Color.parseColor("#E7E8F2")) // divider
+                    setBackgroundColor(col(R.color.line))
                 }
                 frame.addView(line)
             }
@@ -281,13 +281,13 @@ class CalendarActivity : BaseActivity() {
                 val classView = TextView(this).apply {
                     text = "${c.subjectName}\n${c.classroom}"
                     textSize = 10f
-                    setTextColor(Color.WHITE)
+                    setTextColor(col(R.color.white))
                     setPadding(8, 8, 8, 8)
                     gravity = Gravity.CENTER_HORIZONTAL
 
                     val bg = GradientDrawable()
-                    bg.setColor(Color.parseColor("#2F358F")) // primary_blue
-                    bg.cornerRadius = 8f
+                    bg.setColor(primaryColor()) // لون الثيم
+                    bg.cornerRadius = 12f
                     background = bg
 
                     layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, heightPx).apply {
@@ -319,7 +319,8 @@ class CalendarActivity : BaseActivity() {
                 gravity = Gravity.CENTER
                 textSize = 12f
                 textStyle = android.graphics.Typeface.BOLD
-                setBackgroundColor(Color.parseColor("#E7E8F2"))
+                setTextColor(col(R.color.ink_muted))
+                setBackgroundColor(col(R.color.surface_alt))
                 setPadding(0, 20, 0, 20)
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0; height = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -343,7 +344,7 @@ class CalendarActivity : BaseActivity() {
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                     setMargins(1, 1, 1, 1)
                 }
-                setBackgroundColor(Color.parseColor("#F4F6F9"))
+                setBackgroundColor(col(R.color.canvas))
             }
             monthlyGrid.addView(emptyView)
         }
@@ -355,7 +356,7 @@ class CalendarActivity : BaseActivity() {
 
             val cell = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundColor(Color.WHITE)
+                setBackgroundColor(col(R.color.surface))
                 setPadding(4, 4, 4, 4)
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0; height = (80 * resources.displayMetrics.density).toInt()
@@ -369,7 +370,7 @@ class CalendarActivity : BaseActivity() {
                 text = day.toString()
                 textSize = 12f
                 textStyle = android.graphics.Typeface.BOLD
-                setTextColor(Color.parseColor("#1B1E3A"))
+                setTextColor(col(R.color.ink))
             })
 
             // إضافة نقطة أو نص صغير للحصص (الحد الأقصى 2 لكي لا تتشوه الشاشة)
@@ -377,17 +378,20 @@ class CalendarActivity : BaseActivity() {
                 val classTv = TextView(this).apply {
                     text = c.subjectName
                     textSize = 8f
-                    setTextColor(Color.WHITE)
+                    setTextColor(col(R.color.white))
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
-                    setBackgroundColor(Color.parseColor("#4C53A4"))
-                    setPadding(4, 2, 4, 2)
+                    val chipBg = GradientDrawable()
+                    chipBg.setColor(primaryColor())
+                    chipBg.cornerRadius = 6f
+                    background = chipBg
+                    setPadding(6, 2, 6, 2)
                     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 2 }
                 }
                 cell.addView(classTv)
             }
             if (dayClasses.size > 2) {
-                cell.addView(TextView(this).apply { text = "+${dayClasses.size - 2}"; textSize = 8f; gravity = Gravity.CENTER })
+                cell.addView(TextView(this).apply { text = "+${dayClasses.size - 2}"; textSize = 8f; gravity = Gravity.CENTER; setTextColor(col(R.color.ink_muted)) })
             }
 
             monthlyGrid.addView(cell)
@@ -397,6 +401,14 @@ class CalendarActivity : BaseActivity() {
 
     private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
     private val WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT
+
+    // ===== ألوان دلالية تستجيب للوضع الليلي =====
+    private fun col(id: Int) = ContextCompat.getColor(this, id)
+    private fun primaryColor(): Int {
+        val tv = android.util.TypedValue()
+        theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
+        return tv.data
+    }
     private var TextView.textStyle: Int
         get() = typeface?.style ?: 0
         set(value) { setTypeface(typeface, value) }

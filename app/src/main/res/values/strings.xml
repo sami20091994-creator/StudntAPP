@@ -6,4 +6,7 @@
     <string name="no_phone_listed">No phone number listed</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <!-- نصوص الإعدادات -->
+    <string name="about_us_text">تطبيق رسالتي (Resalaty) هو منصّة تعليمية متكاملة تربط الطالب والمعلم في مكان واحد: الجدول الدراسي، المواد، الاختبارات الذكية، التقارير اليومية، المحاضرات الأونلاين، والمحاسبة. هدفنا تبسيط الرحلة التعليمية ورفع جودة المتابعة بين الطالب وأسرته ومعلميه.</string>
+    <string name="dev_team_text">تم تطوير التطبيق بعناية من فريق رسالتي التقني.\n\n• تصميم وتجربة المستخدم (UI/UX)\n• تطوير تطبيق أندرويد\n• تطوير الخوادم والـ API\n\nنرحّب بملاحظاتكم لتحسين التطبيق باستمرار.</string>
 </resources>

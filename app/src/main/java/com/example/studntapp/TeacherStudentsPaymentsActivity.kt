@@ -20,7 +20,7 @@ import retrofit2.Response
 // كلاس جديد لتمثيل (المادة وبداخلها قائمة طلابها)
 data class SubjectGroup(val subjectName: String, val students: List<StudentPayment>)
 
-class TeacherStudentsPaymentsActivity : AppCompatActivity() {
+class TeacherStudentsPaymentsActivity : ThemedActivity() {
 
     private var teacherId = 0
     private lateinit var rvSubjectsGroups: RecyclerView

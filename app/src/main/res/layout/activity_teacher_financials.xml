@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F6F9">
+    android:background="@color/canvas">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -19,30 +19,30 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:background="#FFFFFF"
+                android:background="@color/surface"
                 android:elevation="2dp"
                 android:orientation="horizontal"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="15dp">
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                    <TextView android:id="@+id/tvTotalClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#1B1E3A" android:textSize="18sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكل" android:textColor="#5B5F7A" android:textSize="12sp" />
+                    <TextView android:id="@+id/tvTotalClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/ink" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الكل" android:textColor="@color/ink_muted" android:textSize="12sp" />
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                    <TextView android:id="@+id/tvCompletedClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#2BB673" android:textSize="18sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="منجزة" android:textColor="#5B5F7A" android:textSize="12sp" />
+                    <TextView android:id="@+id/tvCompletedClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/success_green" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="منجزة" android:textColor="@color/ink_muted" android:textSize="12sp" />
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                    <TextView android:id="@+id/tvRemainingClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#4C53A4" android:textSize="18sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="متبقية" android:textColor="#5B5F7A" android:textSize="12sp" />
+                    <TextView android:id="@+id/tvRemainingClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="?attr/colorPrimary" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="متبقية" android:textColor="@color/ink_muted" android:textSize="12sp" />
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                    <TextView android:id="@+id/tvCancelledClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#E5484D" android:textSize="18sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ملغاة" android:textColor="#5B5F7A" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvCancelledClasses" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/error_red" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ملغاة" android:textColor="@color/ink_muted" android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -50,7 +50,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="#FFFFFF"
+                android:background="@color/surface"
                 android:padding="16dp"
                 android:elevation="2dp"
                 android:layout_marginBottom="16dp">
@@ -59,7 +59,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="إجمالي المُستلَم والمسحوبات"
-                    android:textColor="#5B5F7A"
+                    android:textColor="@color/ink_muted"
                     android:textStyle="bold"
                     android:textSize="14sp" />
 
@@ -68,7 +68,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="0 ل.س"
-                    android:textColor="#2BB673"
+                    android:textColor="@color/success_green"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:layout_marginTop="8dp"/>
@@ -94,7 +94,7 @@
                     android:paddingHorizontal="16dp"
                     android:paddingBottom="8dp"
                     android:text="إجماليات الدورات الخاصة (ذات النسبة)"
-                    android:textColor="#5B5F7A"
+                    android:textColor="@color/ink_muted"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -102,18 +102,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:background="#FFFFFF"
+                    android:background="@color/surface"
                     android:padding="20dp"
                     android:elevation="2dp"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="إجمالي الأرباح" android:textColor="#5B5F7A" android:textSize="13sp"/>
-                        <TextView android:id="@+id/tvTotalShare" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#4C53A4" android:textSize="16sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="إجمالي الأرباح" android:textColor="@color/ink_muted" android:textSize="13sp"/>
+                        <TextView android:id="@+id/tvTotalShare" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="?attr/colorPrimary" android:textSize="16sp" android:textStyle="bold"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الرصيد المتبقي لك" android:textColor="#5B5F7A" android:textSize="13sp"/>
-                        <TextView android:id="@+id/tvRemaining" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#E5484D" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="الرصيد المتبقي لك" android:textColor="@color/ink_muted" android:textSize="13sp"/>
+                        <TextView android:id="@+id/tvRemaining" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/error_red" android:textSize="16sp" android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -123,7 +123,7 @@
                     android:text="تفصيل الدورات الخاصة"
                     android:paddingHorizontal="16dp"
                     android:paddingBottom="8dp"
-                    android:textColor="#5B5F7A"
+                    android:textColor="@color/ink_muted"
                     android:textStyle="bold"
                     android:textSize="14sp" />
 

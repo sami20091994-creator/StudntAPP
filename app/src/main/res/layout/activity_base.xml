@@ -4,234 +4,222 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
+    android:fitsSystemWindows="false"
     android:layoutDirection="rtl">
 
-    <!-- ===== المحتوى الرئيسي ===== -->
     <RelativeLayout
+        android:id="@+id/content_root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/canvas">
+        android:background="@drawable/app_background">
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/appbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:background="@color/indigo"
+            android:background="?attr/colorPrimary"
             app:elevation="0dp">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/indigo"
+                android:background="?attr/colorPrimary"
                 app:titleTextColor="@color/white"
                 app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6"
                 android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
                 app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-                android:layoutDirection="rtl" />
+                android:layoutDirection="rtl">
+
+                <!-- جرس الإشعارات (يظهر في كل الشاشات) مع شارة عدّاد -->
+                <FrameLayout
+                    android:id="@+id/notifBellContainer"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:layout_gravity="end"
+                    android:layout_marginEnd="4dp">
+
+                    <ImageButton
+                        android:id="@+id/btnNotifBell"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="الإشعارات"
+                        android:padding="11dp"
+                        android:src="@drawable/ic_nav_bell"
+                        app:tint="@color/white" />
+
+                    <TextView
+                        android:id="@+id/tvNotifCount"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="top|start"
+                        android:layout_marginStart="24dp"
+                        android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_unread_badge"
+                        android:gravity="center"
+                        android:textColor="@color/white"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </FrameLayout>
+            </androidx.appcompat.widget.Toolbar>
         </com.google.android.material.appbar.AppBarLayout>
 
-        <!-- حاوية محتوى كل شاشة -->
         <FrameLayout
             android:id="@+id/activity_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@id/appbar"
-            android:background="@color/canvas"
             android:clipToPadding="false"
             android:paddingBottom="@dimen/bottom_content_padding" />
 
-        <!-- ===== الشريط السفلي العائم ===== -->
-        <FrameLayout
-            android:id="@+id/bottomNavContainer"
+        <!-- ===== الشريط السفلي (4 وجهات رئيسية فقط — بلا تكرار) ===== -->
+        <LinearLayout
+            android:id="@+id/barBackground"
             android:layout_width="match_parent"
-            android:layout_height="96dp"
+            android:layout_height="66dp"
             android:layout_alignParentBottom="true"
-            android:clipChildren="false"
-            android:clipToPadding="false">
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_bottom_bar"
+            android:elevation="12dp"
+            android:orientation="horizontal"
+            android:layoutDirection="rtl"
+            android:paddingHorizontal="6dp">
 
-            <!-- خلفية الشريط -->
             <LinearLayout
-                android:id="@+id/barBackground"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/bottom_bar_height"
-                android:layout_gravity="bottom"
-                android:background="@drawable/bg_bottom_bar"
-                android:elevation="8dp"
-                android:orientation="horizontal"
-                android:layoutDirection="rtl">
-
-                <!-- الجدول -->
-                <LinearLayout
-                    android:id="@+id/tab_schedule"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="vertical">
-                    <ImageView
-                        android:id="@+id/icon_schedule"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_tab_schedule" />
-                    <TextView
-                        android:id="@+id/label_schedule"
-                        style="@style/BottomNavTabText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="الجدول"
-                        android:textColor="@color/white" />
-                </LinearLayout>
-
-                <!-- المواد -->
-                <LinearLayout
-                    android:id="@+id/tab_materials"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="vertical">
-                    <ImageView
-                        android:id="@+id/icon_materials"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_tab_materials" />
-                    <TextView
-                        android:id="@+id/label_materials"
-                        style="@style/BottomNavTabText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="المواد"
-                        android:textColor="@color/white" />
-                </LinearLayout>
-
-                <!-- فجوة الزر المركزي -->
-                <View
-                    android:layout_width="72dp"
-                    android:layout_height="match_parent" />
-
-                <!-- التقارير -->
-                <LinearLayout
-                    android:id="@+id/tab_reports"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="vertical">
-                    <ImageView
-                        android:id="@+id/icon_reports"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_tab_reports" />
-                    <TextView
-                        android:id="@+id/label_reports"
-                        style="@style/BottomNavTabText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="التقارير"
-                        android:textColor="@color/white" />
-                </LinearLayout>
-
-                <!-- الملف -->
-                <LinearLayout
-                    android:id="@+id/tab_profile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="vertical">
-                    <ImageView
-                        android:id="@+id/icon_profile"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_tab_profile" />
-                    <TextView
-                        android:id="@+id/label_profile"
-                        style="@style/BottomNavTabText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="الملف"
-                        android:textColor="@color/white" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- قطع دائري لإيهام الفجوة -->
-            <View
-                android:layout_width="78dp"
-                android:layout_height="78dp"
-                android:layout_gravity="top|center_horizontal"
-                android:background="@drawable/bg_fab_cutout"
-                android:elevation="10dp" />
-
-            <!-- زر الرئيسية العائم -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/fab_home"
-                android:layout_width="@dimen/fab_size"
-                android:layout_height="@dimen/fab_size"
-                android:layout_gravity="top|center_horizontal"
-                android:layout_marginTop="6dp"
+                android:id="@+id/tab_home"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
-                android:elevation="16dp"
-                app:cardBackgroundColor="@color/indigo_dark"
-                app:cardCornerRadius="31dp"
-                app:cardElevation="16dp"
-                app:strokeColor="@color/gold"
-                app:strokeWidth="3dp"
-                app:rippleColor="@color/gold_soft">
-
+                android:gravity="center"
+                android:orientation="vertical">
                 <ImageView
                     android:id="@+id/icon_home"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_home_fab" />
-            </com.google.android.material.card.MaterialCardView>
+                    android:src="@drawable/ic_home_fab"
+                    android:tint="@color/ink_faint" />
+                <View
+                    android:id="@+id/ind_home"
+                    android:layout_width="22dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_tab_indicator"
+                    android:visibility="invisible" />
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/label_home"
-                style="@style/BottomNavTabText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|center_horizontal"
-                android:layout_marginBottom="7dp"
-                android:elevation="20dp"
-                android:text="الرئيسية"
-                android:textColor="@color/gold" />
-        </FrameLayout>
+            <LinearLayout
+                android:id="@+id/tab_schedule"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+                <ImageView
+                    android:id="@+id/icon_schedule"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:src="@drawable/ic_tab_schedule"
+                    android:tint="@color/ink_faint" />
+                <View
+                    android:id="@+id/ind_schedule"
+                    android:layout_width="22dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_tab_indicator"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/tab_materials"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+                <ImageView
+                    android:id="@+id/icon_materials"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:src="@drawable/ic_tab_materials"
+                    android:tint="@color/ink_faint" />
+                <View
+                    android:id="@+id/ind_materials"
+                    android:layout_width="22dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_tab_indicator"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/tab_reports"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+                <ImageView
+                    android:id="@+id/icon_reports"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:src="@drawable/ic_tab_reports"
+                    android:tint="@color/ink_faint" />
+                <View
+                    android:id="@+id/ind_reports"
+                    android:layout_width="22dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_tab_indicator"
+                    android:visibility="invisible" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== زر عائم للرسائل (يظهر في كل الشاشات فوق الشريط السفلي) ===== -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabMessages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/barBackground"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="14dp"
+            android:contentDescription="الرسائل"
+            android:src="@drawable/ic_nav_messages"
+            app:backgroundTint="?attr/colorPrimary"
+            app:elevation="10dp"
+            app:tint="@color/white" />
 
     </RelativeLayout>
 
-    <!-- ===== القائمة الجانبية (المزيد) ===== -->
+    <!-- ===== الدرج الجانبي يفتح من اليمين (نفس جهة الأيقونة في RTL) ===== -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="288dp"
+        android:layout_width="294dp"
         android:layout_height="match_parent"
-        android:layout_gravity="end"
-        android:fitsSystemWindows="true"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="false"
         android:background="@color/surface"
         android:layoutDirection="rtl"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_menu_student"
-        app:itemIconTint="@color/indigo"
+        app:itemIconTint="?attr/colorPrimary"
         app:itemTextColor="@color/ink"
         app:itemBackground="@drawable/bg_nav_item"
         app:itemShapeAppearance="@style/ShapeAppearance.MaterialComponents.MediumComponent"

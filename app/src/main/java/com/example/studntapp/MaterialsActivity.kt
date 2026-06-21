@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -31,7 +32,6 @@ class MaterialsActivity : BaseActivity() {
 
     private lateinit var rv: RecyclerView
     private lateinit var fabUpload: FloatingActionButton
-    private lateinit var tvHeaderTitle: TextView
     private var role = ""
     private var userId = 0
     private var currentSubjectId = 0
@@ -57,7 +57,6 @@ class MaterialsActivity : BaseActivity() {
 
         rv = findViewById(R.id.rvSubjects)
         fabUpload = findViewById(R.id.fabUpload)
-        tvHeaderTitle = findViewById(R.id.tvHeaderTitle)
         rv.layoutManager = LinearLayoutManager(this)
 
         fabUpload.setOnClickListener { selectFileToUpload() }
@@ -74,8 +73,7 @@ class MaterialsActivity : BaseActivity() {
 
     private fun loadSubjects() {
         currentSubjectId = 0
-        supportActionBar?.title = "موادي الدراسية"
-        tvHeaderTitle.text = "قائمة المواد الدراسية"
+        supportActionBar?.title = "قائمة المواد الدراسية"
         fabUpload.visibility = View.GONE
 
         val call = if (role == "teacher") {
@@ -109,8 +107,7 @@ class MaterialsActivity : BaseActivity() {
 
     private fun loadMaterialsForSubject(subjectId: Int, subjectName: String) {
         currentSubjectId = subjectId
-        supportActionBar?.title = "ملفات: $subjectName"
-        tvHeaderTitle.text = "الملفات التعليمية المرفوعة"
+        supportActionBar?.title = "الملفات التعليمية المرفوعة"
 
         // إظهار زر الرفع فقط للأستاذ
         if (role == "teacher") {
@@ -230,7 +227,7 @@ class MaterialsAdapter(private val list: List<MaterialData>, private val context
         holder.title.text = item.title
         holder.info.text = "نوع الملف: ${item.fileType}"
         holder.status.text = item.uploadedAt
-        holder.status.setTextColor(Color.GRAY)
+        holder.status.setTextColor(ContextCompat.getColor(context, R.color.ink_muted))
 
         holder.itemView.setOnClickListener {
             val path = item.filePath

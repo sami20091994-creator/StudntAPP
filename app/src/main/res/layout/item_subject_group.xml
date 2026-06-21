@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#FFFFFF"
+    android:background="@color/surface"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
     android:elevation="2dp"
@@ -13,7 +13,7 @@
         android:id="@+id/tvSubjectGroupName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#4C53A4"
+        android:textColor="?attr/colorPrimary"
         android:textSize="16sp"
         android:textStyle="bold"
         android:drawablePadding="8dp"
@@ -24,7 +24,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F4F6F9"
+        android:background="@color/canvas"
         android:layout_marginBottom="8dp"/>
 
     <androidx.recyclerview.widget.RecyclerView

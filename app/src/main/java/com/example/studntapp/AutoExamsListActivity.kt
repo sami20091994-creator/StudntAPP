@@ -25,7 +25,8 @@ class AutoExamsListActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auto_exams_list)
 
-        supportActionBar?.hide()
+        // نُبقي شريط الهيكل ظاهراً ليظهر زر السايدبار كباقي الصفحات.
+        supportActionBar?.title = "الاختبارات الذكية"
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         studentId = prefs.getInt("USER_ID", 0)

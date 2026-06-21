@@ -1,18 +1,21 @@
 package com.example.studntapp
 
 import android.content.Context
-import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class ReportActivity : AppCompatActivity() {
+class ReportActivity : BaseActivity() {
 
     private var studentId = 0
     private lateinit var mainLayout: LinearLayout
@@ -25,20 +28,27 @@ class ReportActivity : AppCompatActivity() {
     private var allEnrolledSubjects = mutableListOf<SubjectData>()
     private var currentSelectedSubjectId = 0
 
+    // ===== ألوان متوافقة مع الثيم/الوضع الليلي =====
+    private fun col(id: Int) = ContextCompat.getColor(this, id)
+    private fun primaryColor(): Int {
+        val tv = TypedValue()
+        theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
+        return tv.data
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // تم تصحيح هذا السطر ليستدعي הגلسة الصحيحة AppSession
         studentId = getSharedPreferences("AppSession", Context.MODE_PRIVATE).getInt("USER_ID", 0)
 
         buildUI()
+        supportActionBar?.title = "التقرير الأكاديمي"
         fetchSubjectsAndStatus()
     }
 
     private fun buildUI() {
         val scrollView = ScrollView(this).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(Color.parseColor("#f4f6f9"))
             isFillViewport = true
         }
         mainLayout = LinearLayout(this).apply {
@@ -46,56 +56,45 @@ class ReportActivity : AppCompatActivity() {
             setPadding(40, 40, 40, 40)
         }
 
-        val title = TextView(this).apply {
-            text = "التقرير الأكاديمي الشامل"
-            textSize = 24f
-            setTextColor(Color.parseColor("#1B1E3A"))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 40)
+        // (عنوان الصفحة يظهر في شريط العناوين العلوي — لا نكرّره داخل المحتوى)
+        val filterLabel = TextView(this).apply {
+            text = "تصفية حسب المادة:"; setTextColor(col(R.color.ink_muted)); setPadding(0, 0, 0, 10); gravity = Gravity.END
         }
-        mainLayout.addView(title)
-
-        val filterLabel = TextView(this).apply { text = "تصفية حسب المادة:"; setTextColor(Color.GRAY); setPadding(0, 0, 0, 10); gravity = Gravity.END }
         spinnerSubjects = Spinner(this).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)
-            setBackgroundColor(Color.WHITE)
+            background = cardBg()
         }
         mainLayout.addView(filterLabel)
         mainLayout.addView(spinnerSubjects)
-
-        fun statCardBg() = android.graphics.drawable.GradientDrawable().apply {
-            setColor(Color.WHITE); cornerRadius = 48f
-        }
 
         val statsLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30) }
         val avgBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = 18 }
-            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = statCardBg()
+            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = cardBg()
         }
-        avgBox.addView(TextView(this).apply { text = "المعدل التراكمي"; setTextColor(Color.parseColor("#5B5F7A")); textSize = 13f })
-        tvAverage = TextView(this).apply { text = "0%"; textSize = 32f; setTextColor(Color.parseColor("#4C53A4")); setTypeface(null, android.graphics.Typeface.BOLD) }
+        avgBox.addView(TextView(this).apply { text = "المعدل التراكمي"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
+        tvAverage = TextView(this).apply { text = "0%"; textSize = 32f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
         avgBox.addView(tvAverage)
 
         val quizBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = 18 }
-            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = statCardBg()
+            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = cardBg()
         }
-        quizBox.addView(TextView(this).apply { text = "إجمالي الاختبارات"; setTextColor(Color.parseColor("#5B5F7A")); textSize = 13f })
-        tvQuizzes = TextView(this).apply { text = "0"; textSize = 32f; setTextColor(Color.parseColor("#2BB673")); setTypeface(null, android.graphics.Typeface.BOLD) }
+        quizBox.addView(TextView(this).apply { text = "إجمالي الاختبارات"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
+        tvQuizzes = TextView(this).apply { text = "0"; textSize = 32f; setTextColor(col(R.color.success_green)); setTypeface(null, Typeface.BOLD) }
         quizBox.addView(tvQuizzes)
 
         statsLayout.addView(avgBox)
         statsLayout.addView(quizBox)
         mainLayout.addView(statsLayout)
 
-        mainLayout.addView(createSectionTitle("المواد قيد الدراسة (النشطة)", "#2F358F"))
+        mainLayout.addView(createSectionTitle("المواد قيد الدراسة (النشطة)", primaryColor()))
         activeSubjectsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         mainLayout.addView(activeSubjectsContainer)
 
-        mainLayout.addView(createSectionTitle("سجل المواد المكتملة (خريج)", "#2BB673"))
+        mainLayout.addView(createSectionTitle("سجل المواد المكتملة (خريج)", col(R.color.success_green)))
         completedSubjectsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         mainLayout.addView(completedSubjectsContainer)
 
@@ -103,12 +102,17 @@ class ReportActivity : AppCompatActivity() {
         setContentView(scrollView)
     }
 
-    private fun createSectionTitle(title: String, color: String): TextView {
+    private fun cardBg() = GradientDrawable().apply {
+        setColor(col(R.color.surface)); cornerRadius = 40f
+        setStroke(2, col(R.color.line))
+    }
+
+    private fun createSectionTitle(title: String, color: Int): TextView {
         return TextView(this).apply {
             text = title
             textSize = 18f
-            setTextColor(Color.parseColor(color))
-            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(color)
+            setTypeface(null, Typeface.BOLD)
             setPadding(0, 40, 10, 20)
             gravity = Gravity.END
         }
@@ -177,20 +181,21 @@ class ReportActivity : AppCompatActivity() {
         val barLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(35, 35, 35, 35)
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(Color.WHITE); cornerRadius = 25f
+            background = GradientDrawable().apply {
+                setColor(col(R.color.surface)); cornerRadius = 30f
+                setStroke(2, col(R.color.line))
             }
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, 30) }
-            elevation = 8f
+            elevation = 6f
         }
 
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 10f; gravity = Gravity.CENTER_VERTICAL }
 
         val tvStatus = TextView(this).apply {
             text = if (isActive) "مستمر" else "✓ مكتمل"
-            setTextColor(if (isActive) Color.parseColor("#4C53A4") else Color.WHITE)
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(if (isActive) Color.parseColor("#EAF1FF") else Color.parseColor("#2BB673"))
+            setTextColor(if (isActive) primaryColor() else col(R.color.white))
+            background = GradientDrawable().apply {
+                setColor(if (isActive) col(R.color.surface_alt) else col(R.color.success_green))
                 cornerRadius = 12f
             }
             setPadding(20, 8, 20, 8); textSize = 11f; gravity = Gravity.CENTER
@@ -198,31 +203,33 @@ class ReportActivity : AppCompatActivity() {
         }
 
         val tvName = TextView(this).apply {
-            text = name; textSize = 15f; setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(if (isLow) Color.parseColor("#E5484D") else Color.parseColor("#1B1E3A"))
+            text = name; textSize = 15f; setTypeface(null, Typeface.BOLD)
+            setTextColor(col(R.color.ink)) // الاسم دائماً بلون النص الأساسي؛ التنبيه يظهر في النسبة فقط
             gravity = Gravity.END; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 7f)
         }
         header.addView(tvStatus); header.addView(tvName); barLayout.addView(header)
 
         val tvPercent = TextView(this).apply {
-            text = "$percentage%"; setTypeface(null, android.graphics.Typeface.BOLD); gravity = Gravity.END
-            setTextColor(if (isLow) Color.parseColor("#E5484D") else Color.parseColor("#2F358F"))
+            text = "$percentage%"; setTypeface(null, Typeface.BOLD); gravity = Gravity.END
+            setTextColor(if (isLow) col(R.color.error_red) else primaryColor())
             setPadding(0, 15, 0, 5)
         }
         barLayout.addView(tvPercent)
 
         val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 25)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 26).apply { topMargin = 14 }
             max = 100; this.progress = percentage.toInt()
-            val pColor = if (isLow) "#E5484D" else if (isActive) "#4C53A4" else "#2BB673"
-            progressDrawable.setColorFilter(Color.parseColor(pColor), android.graphics.PorterDuff.Mode.SRC_IN)
+            val pColor = if (isLow) col(R.color.error_red) else if (isActive) primaryColor() else col(R.color.success_green)
+            // تلوين الجزء المُنجَز فقط، وإبقاء المسار غير المُنجَز بلون خفيف — مظهر Material أنظف.
+            progressTintList = android.content.res.ColorStateList.valueOf(pColor)
+            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(col(R.color.line))
         }
         barLayout.addView(progress)
 
         if (!isActive) {
             val tvDone = TextView(this).apply {
-                text = "تم التخرج من هذه المادة 🎓"; textSize = 12f; setTextColor(Color.parseColor("#2BB673"))
-                setPadding(0, 15, 0, 0); gravity = Gravity.END; setTypeface(null, android.graphics.Typeface.ITALIC)
+                text = "تم التخرج من هذه المادة 🎓"; textSize = 12f; setTextColor(col(R.color.success_green))
+                setPadding(0, 15, 0, 0); gravity = Gravity.END; setTypeface(null, Typeface.ITALIC)
             }
             barLayout.addView(tvDone)
             completedSubjectsContainer.addView(barLayout)
@@ -236,5 +243,5 @@ class ReportActivity : AppCompatActivity() {
         if (completedSubjectsContainer.childCount == 0) completedSubjectsContainer.addView(createEmptyMsg("لا توجد مواد مكتملة"))
     }
 
-    private fun createEmptyMsg(m: String) = TextView(this).apply { text = m; setTextColor(Color.GRAY); gravity = Gravity.CENTER; setPadding(0, 20, 0, 20) }
+    private fun createEmptyMsg(m: String) = TextView(this).apply { text = m; setTextColor(col(R.color.ink_faint)); gravity = Gravity.CENTER; setPadding(0, 20, 0, 20) }
 }
