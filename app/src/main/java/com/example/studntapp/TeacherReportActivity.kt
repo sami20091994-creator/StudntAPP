@@ -11,6 +11,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -120,25 +121,32 @@ class ReportSubjectsAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         // بناء تصميم بسيط برمجياً لعرض اسم المادة + المجموعة
-        val layout = LinearLayout(parent.context).apply {
+        val ctx = parent.context
+        val layout = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setPadding(40, 40, 40, 40)
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(ContextCompat.getColor(ctx, R.color.surface)) // يستجيب للوضع الليلي
         }
 
-        val tvTitle = TextView(parent.context).apply {
+        // لون الثيم الأساسي لتلوين الأيقونة.
+        val primaryTv = android.util.TypedValue()
+        ctx.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, primaryTv, true)
+
+        val tvTitle = TextView(ctx).apply {
             id = android.R.id.text1
-            textSize = 18f
-            setTextColor(Color.parseColor("#1B1E3A"))
+            textSize = 17f
+            setTextColor(ContextCompat.getColor(ctx, R.color.ink))
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_sort_by_size, 0, 0, 0)
-            compoundDrawablePadding = 20
+            // أيقونة مادة احترافية على اليسار، ملوّنة بلون الثيم.
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_subject_book, 0, 0, 0)
+            compoundDrawablePadding = 26
+            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(primaryTv.data)
         }
 
-        val divider = View(parent.context).apply {
+        val divider = View(ctx).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 30 }
-            setBackgroundColor(Color.parseColor("#F4F6F9"))
+            setBackgroundColor(ContextCompat.getColor(ctx, R.color.line)) // يستجيب للوضع الليلي
         }
 
         layout.addView(tvTitle)

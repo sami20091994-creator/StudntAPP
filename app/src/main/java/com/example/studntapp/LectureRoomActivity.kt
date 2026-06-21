@@ -58,6 +58,17 @@ class LectureRoomActivity : AppCompatActivity() {
 
         webView = findViewById(R.id.webViewLecture)
 
+        // مراعاة النوتش/الحواف: نزيح محتوى المحاضرة أسفل شريط الحالة وفوق شريط التنقّل.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
+            val bars = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                    androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val userId = prefs.getInt("USER_ID", 0)
         val userName = prefs.getString("USER_NAME", "مستخدم") ?: "مستخدم"

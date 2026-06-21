@@ -76,11 +76,13 @@
 
         <ImageButton
             android:id="@+id/btnPrev"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_media_previous"
-            app:tint="@color/text_dark" />
+            android:padding="8dp"
+            android:contentDescription="السابق"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="?attr/colorPrimary" />
 
         <TextView
             android:id="@+id/tvPeriodName"
@@ -95,11 +97,13 @@
 
         <ImageButton
             android:id="@+id/btnNext"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_media_next"
-            app:tint="@color/text_dark" />
+            android:padding="8dp"
+            android:contentDescription="التالي"
+            android:src="@drawable/ic_chevron_left"
+            app:tint="?attr/colorPrimary" />
     </LinearLayout>
 
     <FrameLayout
@@ -126,7 +130,7 @@
                 android:background="@color/surface_white"
                 android:padding="16dp"
                 android:text="حصص اليوم"
-                android:textColor="@color/primary_blue"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 

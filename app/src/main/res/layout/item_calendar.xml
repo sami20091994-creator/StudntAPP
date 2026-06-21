@@ -21,7 +21,7 @@
             android:layout_width="4dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="10dp"
-            android:background="@color/indigo" />
+            android:background="?attr/colorPrimary" />
 
         <TextView
             android:id="@+id/tvCalTime"
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="3"
             android:text="08:00"
-            android:textColor="@color/indigo"
+            android:textColor="?attr/colorPrimary"
             android:textSize="16sp"
             android:textStyle="bold" />
 

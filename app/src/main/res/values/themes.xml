@@ -1,26 +1,68 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
+    <!-- ============================================================
+         الثيم الأساس — يعتمد على سمات (?attr) ليتغيّر لون التطبيق
+         بالكامل حسب الباقة اللونية المختارة من الإعدادات.
+         ============================================================ -->
     <style name="Base.Theme.StudntAPP" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- الهوية الأساسية -->
         <item name="colorPrimary">@color/indigo</item>
         <item name="colorPrimaryVariant">@color/indigo_dark</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- الثانوية -->
         <item name="colorSecondary">@color/gold</item>
         <item name="colorSecondaryVariant">@color/gold</item>
         <item name="colorOnSecondary">@color/indigo_deep</item>
-        <!-- الأسطح -->
         <item name="android:colorBackground">@color/canvas</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorError">@color/error_red</item>
-        <!-- شريط الحالة والتنقل -->
-        <item name="android:statusBarColor">@color/indigo</item>
+        <item name="android:windowAnimationStyle">@style/App.WindowAnimation</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
         <item name="android:navigationBarColor">@color/surface</item>
-        <item name="android:windowBackground">@color/canvas</item>
+        <item name="android:windowBackground">@drawable/app_background</item>
+        <!-- دعم النوتش / Edge-to-edge -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
     </style>
 
-    <style name="Theme.StudntAPP" parent="Base.Theme.StudntAPP" />
+    <!-- الثيم الافتراضي (يُستبدل برمجياً حسب الباقة) -->
+    <style name="Theme.StudntAPP" parent="Theme.Resalaty.Indigo" />
 
-    <style name="Widget.CalendarView.Custom" parent="android:Widget.CalendarView">
+    <!-- ===== الباقات اللونية الخمس ===== -->
+    <style name="Theme.Resalaty.Indigo" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_indigo</item>
+        <item name="colorPrimaryVariant">@color/p_indigo_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
     </style>
+
+    <style name="Theme.Resalaty.Emerald" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_emerald</item>
+        <item name="colorPrimaryVariant">@color/p_emerald_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <style name="Theme.Resalaty.Royal" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_royal</item>
+        <item name="colorPrimaryVariant">@color/p_royal_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <style name="Theme.Resalaty.Ocean" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_ocean</item>
+        <item name="colorPrimaryVariant">@color/p_ocean_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <style name="Theme.Resalaty.Crimson" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_crimson</item>
+        <item name="colorPrimaryVariant">@color/p_crimson_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <!-- أنيميشن انتقال النوافذ على مستوى كامل التطبيق -->
+    <style name="App.WindowAnimation" parent="">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in</item>
+        <item name="android:activityOpenExitAnimation">@anim/slide_out</item>
+        <item name="android:activityCloseEnterAnimation">@anim/slide_in_back</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_back</item>
+    </style>
+
+    <style name="Widget.CalendarView.Custom" parent="android:Widget.CalendarView" />
 </resources>

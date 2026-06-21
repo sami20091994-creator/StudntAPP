@@ -19,4 +19,18 @@
     <color name="error_red">#FEB2B2</color>
     <color name="divider">#2D3748</color>
     <color name="primary_blue_light">#1E3A8A</color>
+    <!-- نسخ ليلية للألوان الدلالية المستخدمة في التخطيطات -->
+    <color name="surface">#1A2234</color>
+    <color name="surface_alt">#232C42</color>
+    <color name="canvas">#0F1522</color>
+    <color name="ink">#E2E8F0</color>
+    <color name="ink_muted">#A8B0C2</color>
+    <color name="ink_faint">#6B7280</color>
+    <color name="line">#2D3748</color>
+    <color name="indigo_soft">#1E293B</color>
+    <color name="gold_soft">#2A2410</color>
+    <color name="dot_pattern_color">#475569</color>
+    <!-- ألوان لوحات كشف الحساب (ليلي) -->
+    <color name="panel_debit">#3A2228</color>
+    <color name="panel_credit">#163528</color>
 </resources>

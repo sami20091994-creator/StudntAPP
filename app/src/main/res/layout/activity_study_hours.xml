@@ -13,7 +13,7 @@
         android:gravity="center"
         android:padding="16dp"
         android:text="دراستي المنزلية"
-        android:textColor="#1B1E3A"
+        android:textColor="@color/ink"
         android:textSize="20sp"
         android:textStyle="bold"
         android:visibility="visible"

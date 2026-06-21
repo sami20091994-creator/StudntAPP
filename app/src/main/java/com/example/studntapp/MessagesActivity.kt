@@ -79,7 +79,21 @@ class MessagesActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_messages)
-        supportActionBar?.hide()
+        // قائمة المحادثات تستخدم شريط الهيكل الموحّد (كباقي الشاشات). وعند فتح
+        // غرفة المحادثة نُخفي شريط الهيكل ليظهر شريط الغرفة الخاص (رجوع + اسم).
+        supportActionBar?.title = "الرسائل والدردشة"
+
+        // مراعاة النوتش لرأس غرفة المحادثة (يظهر عند إخفاء شريط الهيكل).
+        findViewById<View?>(R.id.chatRoomHeader)?.let { header ->
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(header) { v, insets ->
+                val top = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                        androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                ).top
+                v.setPadding(v.paddingLeft, top, v.paddingRight, v.paddingBottom)
+                insets
+            }
+        }
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         userId = prefs.getInt("USER_ID", 0)
@@ -160,6 +174,7 @@ class MessagesActivity : BaseActivity() {
         }
 
         loadChatList()
+        openChatFromIntentIfNeeded()
     }
 
     private fun checkAudioPermission(): Boolean = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -194,11 +209,18 @@ class MessagesActivity : BaseActivity() {
     }
 
     private fun openChatRoom(chat: ChatEntity) {
-        currentTargetType = chat.type ?: "user"
-        currentTargetId = chat.id
-        isGroupChat = (currentTargetType == "group")
-        tvRoomName.text = chat.name
+        openChatDirect(chat.id, chat.type ?: "user", chat.name)
+    }
 
+    /** فتح محادثة مباشرةً بمعرّف ونوع واسم — يُستخدم من القائمة ومن الإشعارات. */
+    private fun openChatDirect(targetId: Int, targetType: String, targetName: String?) {
+        currentTargetType = targetType
+        currentTargetId = targetId
+        isGroupChat = (currentTargetType == "group")
+        tvRoomName.text = targetName
+
+        // داخل الغرفة نُخفي شريط الهيكل ليظهر شريط الغرفة الخاص (رجوع + اسم المحادثة).
+        supportActionBar?.hide()
         layoutChatList.visibility = View.GONE
         layoutChatRoom.visibility = View.VISIBLE
 
@@ -207,6 +229,16 @@ class MessagesActivity : BaseActivity() {
 
         loadMessages(scrollToBottom = true)
         connectToSoketiChannel()
+    }
+
+    /** إن وصلنا من إشعار رسالة، نفتح المحادثة المطلوبة مباشرةً. */
+    private fun openChatFromIntentIfNeeded() {
+        val id = intent.getIntExtra("OPEN_CHAT_ID", 0)
+        if (id != 0) {
+            val type = intent.getStringExtra("OPEN_CHAT_TYPE") ?: "user"
+            val name = intent.getStringExtra("OPEN_CHAT_NAME")
+            rvChatList.post { openChatDirect(id, type, name) }
+        }
     }
 
     private fun connectToSoketiChannel() {
@@ -235,6 +267,8 @@ class MessagesActivity : BaseActivity() {
         etSearchMessages.visibility = View.GONE
         layoutChatRoom.visibility = View.GONE
         layoutChatList.visibility = View.VISIBLE
+        // العودة للقائمة: نُظهر شريط الهيكل الموحّد مجدداً.
+        supportActionBar?.show()
         chatAdapter = null
         loadChatList()
     }
@@ -401,10 +435,10 @@ class ChatListAdapter(private var chats: List<ChatEntity>, private val onChatCli
         if (chat.unreadCount > 0) {
             holder.tvUnreadBadge.visibility = View.VISIBLE
             holder.tvUnreadBadge.text = chat.unreadCount.toString()
-            holder.tvLastMsgTime.setTextColor(Color.parseColor("#E5484D")) // error_red
+            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.error_red))
         } else {
             holder.tvUnreadBadge.visibility = View.GONE
-            holder.tvLastMsgTime.setTextColor(Color.parseColor("#5B5F7A")) // text_light
+            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.ink_muted))
         }
 
         holder.cvIcon.setCardBackgroundColor(if (chat.type == "group") Color.parseColor("#2F358F") else Color.parseColor("#F7A61B"))
@@ -467,7 +501,9 @@ class AdvancedChatAdapter(
 
         if (!isMine && isGroup) {
             holder.senderNameRole?.visibility = View.VISIBLE
-            holder.senderNameRole?.text = "${msg.senderName} (${if(msg.senderRole=="teacher") "أستاذ" else if(msg.senderRole=="student") "طالب" else "إدارة"})"
+            val roleLabel = when (msg.senderRole) { "teacher" -> "أستاذ"; "student" -> "طالب"; else -> "إدارة" }
+            val nm = msg.senderName?.takeIf { it.isNotBlank() && it != "null" }
+            holder.senderNameRole?.text = if (nm != null) "$nm ($roleLabel)" else roleLabel
         } else holder.senderNameRole?.visibility = View.GONE
 
         if (!msg.attachmentPath.isNullOrEmpty()) {
@@ -476,7 +512,7 @@ class AdvancedChatAdapter(
                 holder.audioPlayer?.visibility = View.VISIBLE
                 holder.text.visibility = if (msg.body.isNullOrEmpty()) View.GONE else View.VISIBLE
                 holder.text.text = msg.body
-                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#2F358F"))
+                holder.text.setTextColor(if (isMine) Color.WHITE else ContextCompat.getColor(holder.itemView.context, R.color.ink))
                 holder.text.setOnClickListener(null)
 
                 setupAudioPlayer(holder, path, position)
@@ -489,7 +525,7 @@ class AdvancedChatAdapter(
                     else -> "📁 ملف مرفق"
                 }
                 holder.text.text = "$icon\n${msg.body ?: ""}"
-                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#2F358F"))
+                holder.text.setTextColor(if (isMine) Color.WHITE else ContextCompat.getColor(holder.itemView.context, R.color.ink))
                 holder.text.setOnClickListener {
                     val fullUrl = if (path.startsWith("http")) path else RetrofitClient.BASE_URL + path
                     holder.itemView.context.startActivity(Intent(holder.itemView.context, MediaViewerActivity::class.java).apply {
@@ -502,7 +538,7 @@ class AdvancedChatAdapter(
             holder.audioPlayer?.visibility = View.GONE
             holder.text.visibility = View.VISIBLE
             holder.text.text = msg.body
-            holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#1B1E3A"))
+            holder.text.setTextColor(if (isMine) Color.WHITE else ContextCompat.getColor(holder.itemView.context, R.color.ink))
             holder.text.setOnClickListener(null)
         }
     }

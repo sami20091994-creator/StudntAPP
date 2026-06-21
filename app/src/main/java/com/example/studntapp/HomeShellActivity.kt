@@ -1,0 +1,94 @@
+package com.example.studntapp
+
+import android.os.Bundle
+import androidx.core.view.GravityCompat
+import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
+
+/** تنفّذه الصفحات التي تريد التعامل مع زر الرجوع داخلياً (مثل المواد). */
+interface BackInterceptor {
+    fun handleBack(): Boolean
+}
+
+/**
+ * الشاشة المضيفة للصفحات الأربع الرئيسية داخل ViewPager2 واحد —
+ * تنقّل بالسحب بالإصبع (مثل تبويبات واتساب) مع مزامنة الشريط السفلي.
+ * مخصّصة لدور الطالب؛ يبقى دور المعلّم على التنقّل بالأنشطة المستقلة.
+ */
+class HomeShellActivity : BaseActivity() {
+
+    private lateinit var pager: ViewPager2
+
+    private val titles = listOf(
+        "الرئيسية",
+        "الجدول الزمني",
+        "موادي الدراسية",
+        "التقرير الأكاديمي"
+    )
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_home_pager)
+
+        pager = findViewById(R.id.homePager)
+        pager.adapter = object : FragmentStateAdapter(this) {
+            override fun getItemCount() = 4
+            override fun createFragment(position: Int): Fragment = when (position) {
+                0 -> HomeFragment()
+                1 -> CalendarFragment()
+                2 -> MaterialsFragment()
+                else -> ReportFragment()
+            }
+        }
+        pager.offscreenPageLimit = 1
+
+        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                // مؤشّر منزلق + تكبير أيقونة التبويب النشط متزامناً مع الإصبع.
+                updateTabScroll(position + positionOffset)
+            }
+            override fun onPageSelected(position: Int) {
+                supportActionBar?.title = titles[position]
+            }
+        })
+
+        val startPage = intent.getIntExtra("PAGE", 0).coerceIn(0, 3)
+        pager.setCurrentItem(startPage, false)
+        supportActionBar?.title = titles[startPage]
+        pager.post { updateTabScroll(startPage.toFloat()) }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        // عند العودة إلى المضيف من صفحة فرعية عبر تبويب، ننتقل للصفحة المطلوبة.
+        val page = intent.getIntExtra("PAGE", -1)
+        if (::pager.isInitialized && page in 0..3) pager.setCurrentItem(page, false)
+    }
+
+    /** الضغط على تبويب يحرّك صفحة الـ ViewPager بدل فتح نشاط جديد. */
+    override fun handleMainTab(index: Int): Boolean {
+        if (::pager.isInitialized) {
+            pager.currentItem = index
+            return true
+        }
+        return false
+    }
+
+    override fun onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            return
+        }
+        // أولاً: نمنح الصفحة الحالية فرصة التعامل مع الرجوع (مثل العودة لقائمة المواد).
+        val current = supportFragmentManager.findFragmentByTag("f" + pager.currentItem)
+        if (current is BackInterceptor && current.handleBack()) return
+
+        // من أي صفحة (غير الرئيسية) يعيدنا الرجوع إلى الصفحة الأولى أولاً.
+        if (::pager.isInitialized && pager.currentItem != 0) {
+            pager.currentItem = 0
+            return
+        }
+        super.onBackPressed()
+    }
+}

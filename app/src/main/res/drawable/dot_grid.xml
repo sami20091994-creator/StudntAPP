@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="34dp"
+    android:height="34dp"
+    android:viewportWidth="34"
+    android:viewportHeight="34">
+    <!-- شبكة نقاط على زاوية 45° : نقاط منتصفات الأضلاع + المركز -->
+    <path android:fillColor="@color/dot_pattern_color"
+        android:pathData="M17,0 m-1.4,0 a1.4,1.4 0 1,1 2.8,0 a1.4,1.4 0 1,1 -2.8,0" />
+    <path android:fillColor="@color/dot_pattern_color"
+        android:pathData="M0,17 m-1.4,0 a1.4,1.4 0 1,1 2.8,0 a1.4,1.4 0 1,1 -2.8,0" />
+    <path android:fillColor="@color/dot_pattern_color"
+        android:pathData="M34,17 m-1.4,0 a1.4,1.4 0 1,1 2.8,0 a1.4,1.4 0 1,1 -2.8,0" />
+    <path android:fillColor="@color/dot_pattern_color"
+        android:pathData="M17,34 m-1.4,0 a1.4,1.4 0 1,1 2.8,0 a1.4,1.4 0 1,1 -2.8,0" />
+    <path android:fillColor="@color/dot_pattern_color"
+        android:pathData="M17,17 m-1.4,0 a1.4,1.4 0 1,1 2.8,0 a1.4,1.4 0 1,1 -2.8,0" />
+</vector>

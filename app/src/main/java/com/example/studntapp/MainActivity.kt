@@ -10,14 +10,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.PackageInfoCompat
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -28,34 +31,163 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPassword: EditText
     private lateinit var btnLogin: Button
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ThemeManager.wrapRtl(newBase))
+    }
 
-        // 1. طلب الصلاحيات
+    override fun onCreate(savedInstanceState: Bundle?) {
+        ThemeManager.applyTheme(this)
+        super.onCreate(savedInstanceState)
+        ThemeManager.forceRtl(this)
+
+        // الأذونات
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
+        // ملاحظة: لا نفتح إعدادات البطارية ولا نُظهر تنبيه Autostart عند الإقلاع،
+        // فذلك كان يفتح شاشة النظام ويُظهر نافذة خاطفة ويسرّب نافذة الحوار.
+        // (إرشاد Autostart متاح لاحقاً من شاشة الإعدادات عند الحاجة.)
 
-        // 2. التحقق من أذونات البطارية للحصول على استقرار كامل للإشعارات
-        checkBatteryOptimizations()
+        // 1) فحص رقم النسخة أولاً ثم متابعة التدفق
+        checkVersionThenContinue()
+    }
 
-        val sharedPreferences = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
-        if (sharedPreferences.getBoolean("isLoggedIn", false)) {
-            // تشغيل محرك الإشعارات الفوري في الخلفية
+    // ====== فحص النسخة (إجبار التحديث) ======
+    private fun currentVersionCode(): Long =
+        PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0))
+
+    private fun checkVersionThenContinue() {
+        RetrofitClient.instance.checkVersion().enqueue(object : Callback<VersionResponse> {
+            override fun onResponse(call: Call<VersionResponse>, response: Response<VersionResponse>) {
+                val body = response.body()
+                if (response.isSuccessful && body != null && body.status == "success"
+                    && currentVersionCode() < body.latestVersionCode) {
+                    if (body.forceUpdate) {
+                        showForceUpdateDialog(body.updateUrl, body.message)
+                        return
+                    } else {
+                        showOptionalUpdateDialog(body.updateUrl, body.message)
+                    }
+                }
+                routeAfterVersionCheck()
+            }
+            override fun onFailure(call: Call<VersionResponse>, t: Throwable) {
+                // لا نمنع المستخدم عند فشل الشبكة
+                routeAfterVersionCheck()
+            }
+        })
+    }
+
+    private fun openUpdateUrl(url: String?) {
+        val target = if (url.isNullOrEmpty()) "https://play.google.com/store/apps/details?id=$packageName" else url
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+        } catch (e: Exception) {
+            Toast.makeText(this, "تعذّر فتح رابط التحديث", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showForceUpdateDialog(url: String?, msg: String?) {
+        AlertDialog.Builder(this)
+            .setTitle("تحديث إلزامي")
+            .setMessage(msg ?: "يتوفّر إصدار جديد من التطبيق. يجب التحديث للمتابعة.")
+            .setCancelable(false)
+            .setPositiveButton("تحديث الآن") { _, _ ->
+                openUpdateUrl(url)
+                finishAffinity() // إغلاق التطبيق لإجبار التحديث
+            }
+            .setNegativeButton("خروج") { _, _ -> finishAffinity() }
+            .show()
+    }
+
+    private fun showOptionalUpdateDialog(url: String?, msg: String?) {
+        AlertDialog.Builder(this)
+            .setTitle("يتوفّر تحديث")
+            .setMessage(msg ?: "يتوفّر إصدار أحدث من التطبيق، ننصح بالتحديث.")
+            .setPositiveButton("تحديث") { _, _ -> openUpdateUrl(url) }
+            .setNegativeButton("لاحقاً", null)
+            .show()
+    }
+
+    // ====== متابعة التدفق بعد الفحص ======
+    private fun routeAfterVersionCheck() {
+        val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("isLoggedIn", false)) {
             startRealTimeNotificationService()
-            startActivity(Intent(this, DailyReportActivity::class.java))
+            startActivity(homeIntent())
+            overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
             finish()
             return
         }
+        showLoginForm(prefs)
+    }
 
+    /**
+     * وجهة البداية حسب الدور: الطالب يدخل على HomeShellActivity (تنقّل بالسحب
+     * بين الصفحات الأربع)، والمعلّم يبقى على التنقّل بالأنشطة المستقلة.
+     */
+    private fun homeIntent(): Intent {
+        val role = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
+            .getString("USER_ROLE", "student")
+        return if (role == "teacher")
+            Intent(this, DailyReportActivity::class.java)
+        else
+            Intent(this, HomeShellActivity::class.java)
+    }
+
+    /** استعادة كلمة المرور: يرسل الطلب للسيرفر عبر API ليتولّى المعهد الموافقة. */
+    private fun showForgotPasswordDialog() {
+        val input = EditText(this).apply {
+            hint = "رقم الهاتف المسجّل"
+            inputType = InputType.TYPE_CLASS_PHONE
+            setText(etPhone.text?.toString() ?: "")
+            setPadding(48, 32, 48, 32)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("استعادة كلمة المرور")
+            .setMessage("أدخل رقم هاتفك المسجّل، وسيُرسَل طلبك إلى إدارة المعهد لإعادة التعيين.")
+            .setView(input)
+            .setPositiveButton("إرسال") { _, _ ->
+                val phone = input.text.toString().trim()
+                if (phone.isEmpty()) {
+                    Toast.makeText(this, "الرجاء إدخال رقم الهاتف", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                Toast.makeText(this, "جارٍ إرسال الطلب...", Toast.LENGTH_SHORT).show()
+                RetrofitClient.instance.forgotPassword(phone = phone).enqueue(object : Callback<SimpleResponse> {
+                    override fun onResponse(call: Call<SimpleResponse>, response: Response<SimpleResponse>) {
+                        val msg = response.body()?.message ?: "تم استلام طلبك، سيتم التواصل معك قريباً."
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                    }
+                    override fun onFailure(call: Call<SimpleResponse>, t: Throwable) {
+                        Toast.makeText(this@MainActivity, "تعذّر الاتصال بالسيرفر", Toast.LENGTH_SHORT).show()
+                    }
+                })
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    private fun showLoginForm(prefs: android.content.SharedPreferences) {
         setContentView(R.layout.activity_main)
 
         etPhone = findViewById(R.id.etPhone)
         etPassword = findViewById(R.id.etNewPassword)
         btnLogin = findViewById(R.id.btnLogin)
+
+        // مبدّل الوضع الليلي/النهاري داخل شاشة الدخول (حركة لطيفة عند التبديل).
+        val btnTheme = findViewById<ImageButton>(R.id.btnLoginThemeToggle)
+        btnTheme.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
+        btnTheme.setOnClickListener {
+            ThemeManager.setNight(this, !ThemeManager.isNight(this))
+            recreate()
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
+
+        // نسيت كلمة المرور؟
+        findViewById<TextView>(R.id.btnForgotPassword).setOnClickListener { showForgotPasswordDialog() }
 
         val deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
 
@@ -73,24 +205,24 @@ class MainActivity : AppCompatActivity() {
                 .enqueue(object : Callback<LoginResponse> {
                     override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                         btnLogin.isEnabled = true
-                        btnLogin.text = "تسجيل الدخول"
+                        btnLogin.text = "دخول"
 
                         if (response.isSuccessful && response.body() != null) {
                             val apiResponse = response.body()!!
                             when (apiResponse.status) {
                                 "success" -> {
-                                    val editor = sharedPreferences.edit()
-                                    editor.putBoolean("isLoggedIn", true)
-                                    editor.putInt("USER_ID", apiResponse.data?.id ?: 0)
-                                    editor.putString("USER_NAME", apiResponse.data?.name)
-                                    editor.putString("USER_ROLE", apiResponse.role)
-                                    editor.putString("USER_IMAGE", apiResponse.data?.image)
-                                    editor.apply()
-
-                                    // بدء تشغيل خدمة الإشعارات الأمامية
+                                    prefs.edit().apply {
+                                        putBoolean("isLoggedIn", true)
+                                        putInt("USER_ID", apiResponse.data?.id ?: 0)
+                                        putString("USER_NAME", apiResponse.data?.name)
+                                        putString("USER_ROLE", apiResponse.role)
+                                        putString("USER_IMAGE", apiResponse.data?.image)
+                                        putString("USER_PHONE", phone)
+                                        apply()
+                                    }
                                     startRealTimeNotificationService()
-
-                                    startActivity(Intent(this@MainActivity, DailyReportActivity::class.java))
+                                    startActivity(homeIntent())
+                                    overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
                                     finish()
                                 }
                                 "require_new_password" -> Toast.makeText(this@MainActivity, apiResponse.message, Toast.LENGTH_LONG).show()
@@ -102,41 +234,28 @@ class MainActivity : AppCompatActivity() {
                     }
                     override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                         btnLogin.isEnabled = true
-                        btnLogin.text = "تسجيل الدخول"
+                        btnLogin.text = "دخول"
                         Toast.makeText(this@MainActivity, "خطأ في الاتصال: ${t.message}", Toast.LENGTH_LONG).show()
                     }
                 })
         }
     }
 
-    // دالة بدء الخدمة الأمامية (Foreground Service)
+    // لم نعد نشغّل خدمة أمامية دائمة؛ نكتفي بتسجيل رمز FCM لاستقبال الإشعارات الفورية.
     private fun startRealTimeNotificationService() {
-        val serviceIntent = Intent(this, NotificationService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
+        FcmService.syncToken(this)
     }
 
-    // دالة لمنع نظام Redmi / شاومي من قتل التطبيق في الخلفية
     private fun checkBatteryOptimizations() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent()
-            val packageName = packageName
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
                 intent.data = Uri.parse("package:$packageName")
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                try { startActivity(intent) } catch (e: Exception) { e.printStackTrace() }
             }
         }
 
-        // رسالة تنبيه لمستخدمي شاومي / Redmi لتفعيل "التشغيل التلقائي"
         val manufacturer = Build.MANUFACTURER.lowercase()
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val hasSeenWarning = prefs.getBoolean("has_seen_autostart_warning", false)
@@ -151,9 +270,7 @@ class MainActivity : AppCompatActivity() {
                         val intent = Intent()
                         intent.component = ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
                         startActivity(intent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
                 .setNegativeButton("لاحقاً") { dialog, _ -> dialog.dismiss() }
                 .show()

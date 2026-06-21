@@ -16,7 +16,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import android.content.Intent
 
-class SubjectsActivity : AppCompatActivity() {
+class SubjectsActivity : ThemedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_subjects)
