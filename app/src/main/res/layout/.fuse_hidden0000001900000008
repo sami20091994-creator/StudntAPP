@@ -13,7 +13,7 @@
         android:layout_marginBottom="24dp"
         android:gravity="center"
         android:text="تحليل الأداء اليومي"
-        android:textColor="#1B1E3A"
+        android:textColor="#2d3436"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -28,8 +28,8 @@
             android:orientation="vertical"
             android:padding="20dp"
             android:gravity="center">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المعدل العام" android:textColor="#5B5F7A"/>
-            <TextView android:id="@+id/tvReportAverage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0%" android:textSize="48sp" android:textStyle="bold" android:textColor="#4C53A4"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="المعدل العام" android:textColor="#636e72"/>
+            <TextView android:id="@+id/tvReportAverage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0%" android:textSize="48sp" android:textStyle="bold" android:textColor="#6c5ce7"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -42,7 +42,7 @@
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" app:cardCornerRadius="12dp">
             <LinearLayout android:orientation="vertical" android:padding="16dp" android:gravity="center" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TextView android:text="الترتيب" android:textSize="12sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                <TextView android:id="@+id/tvReportRank" android:text="-" android:textSize="20sp" android:textStyle="bold" android:textColor="#E5484D" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/tvReportRank" android:text="-" android:textSize="20sp" android:textStyle="bold" android:textColor="#d63031" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -50,7 +50,7 @@
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" app:cardCornerRadius="12dp">
             <LinearLayout android:orientation="vertical" android:padding="16dp" android:gravity="center" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <TextView android:text="الاختبارات" android:textSize="12sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                <TextView android:id="@+id/tvReportQuizzes" android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#2BB673" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/tvReportQuizzes" android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#00b894" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

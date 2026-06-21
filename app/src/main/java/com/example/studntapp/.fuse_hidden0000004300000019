@@ -103,7 +103,7 @@ class OnlineLecturesAdapter(
         val tvTitle = TextView(parent.context).apply {
             id = android.R.id.text1
             textSize = 17f
-            setTextColor(Color.parseColor("#1B1E3A"))
+            setTextColor(Color.parseColor("#2d3436"))
             setTypeface(null, android.graphics.Typeface.BOLD)
             setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_camera, 0, 0, 0)
             compoundDrawablePadding = 20
@@ -139,8 +139,8 @@ class OnlineLecturesAdapter(
             holder.divider.setBackgroundColor(Color.parseColor("#fd79a8"))
         } else {
             holder.subtitle.text = "⚪ لا يوجد بث حالياً - الدخول للمساحة والسبورة"
-            holder.subtitle.setTextColor(Color.parseColor("#5B5F7A"))
-            holder.divider.setBackgroundColor(Color.parseColor("#F4F6F9"))
+            holder.subtitle.setTextColor(Color.parseColor("#636e72"))
+            holder.divider.setBackgroundColor(Color.parseColor("#F1F5F9"))
         }
 
         holder.itemView.setOnClickListener { onItemClick(item) }

@@ -3,20 +3,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F6F9">
+    android:background="#F8FAFC">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="قاعات البث المباشر (اختر المادة للدخول للقاعة)"
-        android:padding="20dp"
-        android:background="#FFFFFF"
-        android:textColor="#5B5F7A"
+        android:text="موادي الدراسية (اضغط لعرض التقرير)"
+        android:padding="16dp"
         android:textSize="14sp"
-        android:elevation="2dp" />
+        android:textColor="#757575"
+        android:background="#FFFFFF"
+        android:elevation="2dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvLectures"
+        android:id="@+id/rvReportSubjects"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"

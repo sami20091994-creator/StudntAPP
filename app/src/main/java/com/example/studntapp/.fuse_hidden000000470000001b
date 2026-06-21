@@ -82,7 +82,7 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
         }
 
         val tvDate = TextView(context).apply { textSize = 12f; setTextColor(Color.GRAY) }
-        val tvDesc = TextView(context).apply { textSize = 15f; setTextColor(Color.parseColor("#1B1E3A")); setTypeface(null, android.graphics.Typeface.BOLD); setPadding(0, 10, 0, 15) }
+        val tvDesc = TextView(context).apply { textSize = 15f; setTextColor(Color.parseColor("#2d3436")); setTypeface(null, android.graphics.Typeface.BOLD); setPadding(0, 10, 0, 15) }
         val tvAmount = TextView(context).apply { textSize = 14f; setTypeface(null, android.graphics.Typeface.BOLD) }
 
         rightPanel.addView(tvDate)
@@ -94,11 +94,11 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 3f)
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#F4F6F9"))
+            setBackgroundColor(Color.parseColor("#f8fafc"))
         }
 
         val lblBalance = TextView(context).apply { text = "الرصيد"; textSize = 12f; setTextColor(Color.GRAY); gravity = Gravity.CENTER; setPadding(0,0,0,5) }
-        val tvBalance = TextView(context).apply { textSize = 16f; setTextColor(Color.parseColor("#4C53A4")); setTypeface(null, android.graphics.Typeface.BOLD); gravity = Gravity.CENTER }
+        val tvBalance = TextView(context).apply { textSize = 16f; setTextColor(Color.parseColor("#0984e3")); setTypeface(null, android.graphics.Typeface.BOLD); gravity = Gravity.CENTER }
 
         leftPanel.addView(lblBalance)
         leftPanel.addView(tvBalance)
@@ -121,16 +121,16 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
         // تحديد نوع الحركة (دين أم دفعة) لتلوين البطاقة
         if (item.debit > 0) {
             holder.tvAmount.text = "مطلوب دفع: ${item.debit}"
-            holder.tvAmount.setTextColor(Color.parseColor("#E5484D")) // أحمر للمطلوب
+            holder.tvAmount.setTextColor(Color.parseColor("#d63031")) // أحمر للمطلوب
             holder.leftPanel.setBackgroundColor(Color.parseColor("#fff5f5")) // خلفية حمراء باهتة لجهة الرصيد
         } else if (item.credit > 0) {
             holder.tvAmount.text = "تم دفع: ${item.credit}"
-            holder.tvAmount.setTextColor(Color.parseColor("#2BB673")) // أخضر للمدفوع
+            holder.tvAmount.setTextColor(Color.parseColor("#00b894")) // أخضر للمدفوع
             holder.leftPanel.setBackgroundColor(Color.parseColor("#f0fff4")) // خلفية خضراء باهتة لجهة الرصيد
         } else {
             holder.tvAmount.text = "قيمة العملية: 0"
             holder.tvAmount.setTextColor(Color.GRAY)
-            holder.leftPanel.setBackgroundColor(Color.parseColor("#F4F6F9"))
+            holder.leftPanel.setBackgroundColor(Color.parseColor("#f8fafc"))
         }
 
         // عرض الرصيد الإجمالي التراكمي

@@ -16,7 +16,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:textColor="#1B1E3A"
+            android:textColor="#2d3436"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -24,7 +24,7 @@
             android:id="@+id/tvPaid"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#2BB673"
+            android:textColor="#00b894"
             android:textSize="14sp"
             android:background="#e6fffa"
             android:paddingHorizontal="10dp"
@@ -35,5 +35,5 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F4F6F9" />
+        android:background="#F8FAFC" />
 </LinearLayout>

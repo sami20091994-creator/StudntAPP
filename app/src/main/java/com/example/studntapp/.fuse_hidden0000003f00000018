@@ -401,13 +401,13 @@ class ChatListAdapter(private var chats: List<ChatEntity>, private val onChatCli
         if (chat.unreadCount > 0) {
             holder.tvUnreadBadge.visibility = View.VISIBLE
             holder.tvUnreadBadge.text = chat.unreadCount.toString()
-            holder.tvLastMsgTime.setTextColor(Color.parseColor("#E5484D")) // error_red
+            holder.tvLastMsgTime.setTextColor(Color.parseColor("#EF4444")) // error_red
         } else {
             holder.tvUnreadBadge.visibility = View.GONE
-            holder.tvLastMsgTime.setTextColor(Color.parseColor("#5B5F7A")) // text_light
+            holder.tvLastMsgTime.setTextColor(Color.parseColor("#94A3B8")) // text_light
         }
 
-        holder.cvIcon.setCardBackgroundColor(if (chat.type == "group") Color.parseColor("#2F358F") else Color.parseColor("#F7A61B"))
+        holder.cvIcon.setCardBackgroundColor(if (chat.type == "group") Color.parseColor("#002D56") else Color.parseColor("#FFB81C"))
         holder.tvIcon.text = if (chat.type == "group") "📚" else (chat.name?.firstOrNull()?.toString()?.uppercase() ?: "👤")
 
         holder.itemView.setOnClickListener { onChatClick(chat) }
@@ -476,7 +476,7 @@ class AdvancedChatAdapter(
                 holder.audioPlayer?.visibility = View.VISIBLE
                 holder.text.visibility = if (msg.body.isNullOrEmpty()) View.GONE else View.VISIBLE
                 holder.text.text = msg.body
-                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#2F358F"))
+                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#002D56"))
                 holder.text.setOnClickListener(null)
 
                 setupAudioPlayer(holder, path, position)
@@ -489,7 +489,7 @@ class AdvancedChatAdapter(
                     else -> "📁 ملف مرفق"
                 }
                 holder.text.text = "$icon\n${msg.body ?: ""}"
-                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#2F358F"))
+                holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#002D56"))
                 holder.text.setOnClickListener {
                     val fullUrl = if (path.startsWith("http")) path else RetrofitClient.BASE_URL + path
                     holder.itemView.context.startActivity(Intent(holder.itemView.context, MediaViewerActivity::class.java).apply {
@@ -502,7 +502,7 @@ class AdvancedChatAdapter(
             holder.audioPlayer?.visibility = View.GONE
             holder.text.visibility = View.VISIBLE
             holder.text.text = msg.body
-            holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#1B1E3A"))
+            holder.text.setTextColor(if (isMine) Color.WHITE else Color.parseColor("#1E293B"))
             holder.text.setOnClickListener(null)
         }
     }

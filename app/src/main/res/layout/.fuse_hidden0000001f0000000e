@@ -12,7 +12,7 @@
         android:layout_width="50dp"
         android:layout_height="5dp"
         android:layout_gravity="center"
-        android:background="#E7E8F2"
+        android:background="#E2E8F0"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:text="تقرير المادة"
         android:textAlignment="center"
-        android:textColor="#1B1E3A"
+        android:textColor="#2d3436"
         android:textSize="18sp"
         android:textStyle="bold"
         android:paddingHorizontal="16dp"
@@ -30,7 +30,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F4F6F9" />
+        android:background="#F1F5F9" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvStudentsList"

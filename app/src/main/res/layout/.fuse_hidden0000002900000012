@@ -12,7 +12,7 @@
         android:id="@+id/tvSubjectName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#1B1E3A"
+        android:textColor="#2d3436"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -27,7 +27,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="#5B5F7A"
+            android:textColor="#757575"
             android:lineSpacingExtra="4dp"
             android:textSize="13sp" />
 
@@ -45,11 +45,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:paddingTop="12dp"
-        android:textColor="#5B5F7A"
+        android:textColor="#64748b"
         android:textSize="12sp"
         android:background="@null"
         android:drawablePadding="8dp"
         android:drawableStart="@android:drawable/ic_menu_today"
-        android:drawableTint="#8A8EA8"/>
+        android:drawableTint="#b2bec3"/>
 
 </LinearLayout>

@@ -146,10 +146,10 @@ class StudentPaymentsAdapter(private val list: List<StudentPayment>) : RecyclerV
         if (amount > 0) {
             val formatter = java.text.DecimalFormat("#,##0.00")
             holder.tvPaid.text = "${formatter.format(amount as Double)} ل.س"
-            holder.tvPaid.setTextColor(android.graphics.Color.parseColor("#2BB673")) // أخضر أخضر
+            holder.tvPaid.setTextColor(android.graphics.Color.parseColor("#00b894")) // أخضر أخضر
         } else {
             holder.tvPaid.text = "لم يدفع"
-            holder.tvPaid.setTextColor(android.graphics.Color.parseColor("#E5484D")) // أحمر
+            holder.tvPaid.setTextColor(android.graphics.Color.parseColor("#d63031")) // أحمر
         }
     }
 

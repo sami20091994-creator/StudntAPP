@@ -87,7 +87,7 @@ class EvaluationActivity : BaseActivity() {
         val adminRatingBars = mutableMapOf<String, RatingBar>()
 
         // عنوان قسم المعلم
-        layout.addView(createSectionTitle("أولاً: تقييم المعلم", "#2F358F"))
+        layout.addView(createSectionTitle("أولاً: تقييم المعلم", "#002D56"))
 
         // توليد أسئلة المعلم
         for ((key, label) in teacherCriteria) {
@@ -101,7 +101,7 @@ class EvaluationActivity : BaseActivity() {
         layout.addView(createDivider())
 
         // عنوان قسم الإدارة
-        layout.addView(createSectionTitle("ثانياً: تقييم الإدارة", "#2BB673"))
+        layout.addView(createSectionTitle("ثانياً: تقييم الإدارة", "#10B981"))
 
         // توليد أسئلة الإدارة
         for ((key, label) in adminCriteria) {
@@ -198,7 +198,7 @@ class EvaluationActivity : BaseActivity() {
     private fun createQuestionLabel(textLabel: String): TextView {
         return TextView(this).apply {
             text = textLabel
-            setTextColor(Color.parseColor("#1B1E3A")) // text_dark
+            setTextColor(Color.parseColor("#1E293B")) // text_dark
             textSize = 15f
             setPadding(0, 24, 0, 8)
             setLineSpacing(4f, 1f)
@@ -217,7 +217,7 @@ class EvaluationActivity : BaseActivity() {
 
     private fun createDivider(): View {
         return View(this).apply {
-            setBackgroundColor(Color.parseColor("#E7E8F2")) // divider
+            setBackgroundColor(Color.parseColor("#E2E8F0")) // divider
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2).apply { 
                 setMargins(0, 32, 0, 16) 
             }

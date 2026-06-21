@@ -71,10 +71,10 @@ class DailyQuizzesAdapter(private val list: List<DailyQuiz>) : RecyclerView.Adap
 
         holder.result.text = "${q.percentage}%"
         if (q.percentage >= 50) {
-            holder.result.setTextColor(Color.parseColor("#2BB673")) // أخضر ناجح
+            holder.result.setTextColor(Color.parseColor("#27ae60")) // أخضر ناجح
             holder.result.setBackgroundColor(Color.parseColor("#e8f5e9"))
         } else {
-            holder.result.setTextColor(Color.parseColor("#E5484D")) // أحمر راسب
+            holder.result.setTextColor(Color.parseColor("#c0392b")) // أحمر راسب
             holder.result.setBackgroundColor(Color.parseColor("#fdf2f0"))
         }
     }

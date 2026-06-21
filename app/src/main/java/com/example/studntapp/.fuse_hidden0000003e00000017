@@ -57,7 +57,7 @@ class MediaViewerActivity : AppCompatActivity() {
                         // لإظهار أزرار التحكم في الصوت دائماً
                         mediaController.show(0)
                         // تغيير الخلفية لتوضيح أنه ملف صوتي
-                        findViewById<View>(android.R.id.content).setBackgroundColor(Color.parseColor("#1B1E3A"))
+                        findViewById<View>(android.R.id.content).setBackgroundColor(Color.parseColor("#1a1a1a"))
                     }
                 }
                 videoView.setOnErrorListener { _, _, _ ->

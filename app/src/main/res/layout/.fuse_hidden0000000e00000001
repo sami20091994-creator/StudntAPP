@@ -33,7 +33,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="السؤال 1 من 10"
-                android:textColor="#EAF1FF"
+                android:textColor="#E0E7FF"
                 android:textSize="12sp"
                 android:layout_marginHorizontal="8dp" />
 
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="المادة"
-            android:textColor="#EAF1FF"
+            android:textColor="#E0E7FF"
             android:textSize="14sp"
             android:gravity="right" />
     </LinearLayout>

@@ -130,7 +130,7 @@ class ReportSubjectsAdapter(
         val tvTitle = TextView(parent.context).apply {
             id = android.R.id.text1
             textSize = 18f
-            setTextColor(Color.parseColor("#1B1E3A"))
+            setTextColor(Color.parseColor("#2d3436"))
             setTypeface(null, android.graphics.Typeface.BOLD)
             setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_sort_by_size, 0, 0, 0)
             compoundDrawablePadding = 20
@@ -138,7 +138,7 @@ class ReportSubjectsAdapter(
 
         val divider = View(parent.context).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 30 }
-            setBackgroundColor(Color.parseColor("#F4F6F9"))
+            setBackgroundColor(Color.parseColor("#F1F5F9"))
         }
 
         layout.addView(tvTitle)
@@ -184,7 +184,7 @@ class StudentProgressAdapter(private val list: List<StudentProgress>) : Recycler
             id = android.R.id.text1
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             textSize = 16f
-            setTextColor(Color.parseColor("#1B1E3A"))
+            setTextColor(Color.parseColor("#2d3436"))
         }
 
         val tvScore = TextView(parent.context).apply {
@@ -216,10 +216,10 @@ class StudentProgressAdapter(private val list: List<StudentProgress>) : Recycler
 
         // مطابقة الألوان مع لوحة تحكم الويب بناءً على النسبة
         when {
-            item.averageScore >= 85 -> holder.tvScore.setTextColor(Color.parseColor("#2BB673")) // ممتاز (أخضر)
-            item.averageScore >= 60 -> holder.tvScore.setTextColor(Color.parseColor("#4C53A4")) // جيد (أزرق)
-            item.averageScore >= 40 -> holder.tvScore.setTextColor(Color.parseColor("#F7A61B")) // مقبول (برتقالي)
-            else -> holder.tvScore.setTextColor(Color.parseColor("#E5484D")) // ضعيف (أحمر)
+            item.averageScore >= 85 -> holder.tvScore.setTextColor(Color.parseColor("#00b894")) // ممتاز (أخضر)
+            item.averageScore >= 60 -> holder.tvScore.setTextColor(Color.parseColor("#0984e3")) // جيد (أزرق)
+            item.averageScore >= 40 -> holder.tvScore.setTextColor(Color.parseColor("#f39c12")) // مقبول (برتقالي)
+            else -> holder.tvScore.setTextColor(Color.parseColor("#d63031")) // ضعيف (أحمر)
         }
     }
 

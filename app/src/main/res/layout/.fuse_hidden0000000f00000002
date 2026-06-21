@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="اختر المادة لبدء الاختبار الآن"
-            android:textColor="#EAF1FF"
+            android:textColor="#E0E7FF"
             android:textSize="14sp"
             android:gravity="right" />
     </LinearLayout>

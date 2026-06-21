@@ -78,10 +78,10 @@ class SubjectsAdapter(private val list: List<SubjectData>) : RecyclerView.Adapte
 
         if (item.status == "active") {
             holder.status.text = "نشط"
-            holder.status.setTextColor(android.graphics.Color.parseColor("#2BB673"))
+            holder.status.setTextColor(android.graphics.Color.parseColor("#00b894"))
         } else {
             holder.status.text = "غير نشط"
-            holder.status.setTextColor(android.graphics.Color.parseColor("#E5484D"))
+            holder.status.setTextColor(android.graphics.Color.parseColor("#d63031"))
         }
 
         // 3. هنا نخبر الأندرويد: "عندما يتم النقر على هذا العنصر، قم بتشغيل حدث النقر وأرسل بيانات هذه المادة"

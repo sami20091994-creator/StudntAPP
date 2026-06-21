@@ -131,9 +131,9 @@ class TeacherWithdrawalsAdapter(private val list: List<TeacherWithdrawal>) : Rec
             setPadding(0, 15, 0, 15)
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
-        val tv1 = TextView(parent.context).apply { id = android.R.id.text1; textSize = 16f; setTextColor(Color.parseColor("#2BB673")); setTypeface(null, android.graphics.Typeface.BOLD) }
+        val tv1 = TextView(parent.context).apply { id = android.R.id.text1; textSize = 16f; setTextColor(Color.parseColor("#00b894")); setTypeface(null, android.graphics.Typeface.BOLD) }
         val tv2 = TextView(parent.context).apply { id = android.R.id.text2; textSize = 13f; setTextColor(Color.GRAY) }
-        val divider = View(parent.context).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 15 }; setBackgroundColor(Color.parseColor("#F4F6F9")) }
+        val divider = View(parent.context).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 15 }; setBackgroundColor(Color.parseColor("#F1F5F9")) }
 
         layout.addView(tv1); layout.addView(tv2); layout.addView(divider)
         return WH(layout)
@@ -171,7 +171,7 @@ class TeacherDuesAdapter(private val list: List<TeacherDue>) : RecyclerView.Adap
         val formatter = java.text.DecimalFormat("#,##0.00")
         holder.tvDetails.text = "النسبة: ${item.teacherPercentage}%\nدخل المادة: ${formatter.format(item.totalRevenue)} ل.س"
         holder.tvHighlight.text = "حصتك:\n${formatter.format(item.teacherShare)} ل.س"
-        holder.tvHighlight.setTextColor(Color.parseColor("#4C53A4"))
+        holder.tvHighlight.setTextColor(Color.parseColor("#0984e3"))
     }
     override fun getItemCount() = list.size
 }

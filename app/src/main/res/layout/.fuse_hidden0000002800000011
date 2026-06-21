@@ -13,18 +13,18 @@
         android:id="@+id/tvSubjectGroupName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#4C53A4"
+        android:textColor="#0984e3"
         android:textSize="16sp"
         android:textStyle="bold"
         android:drawablePadding="8dp"
         android:drawableStart="@android:drawable/ic_menu_agenda"
-        android:drawableTint="#4C53A4"
+        android:drawableTint="#0984e3"
         android:layout_marginBottom="12dp"/>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F4F6F9"
+        android:background="#F1F5F9"
         android:layout_marginBottom="8dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
