@@ -26,7 +26,7 @@
             android:layout_width="46dp"
             android:layout_height="46dp"
             android:layout_marginStart="18dp"
-            android:layout_marginTop="45dp"
+            android:layout_marginTop="38dp"
             android:background="@drawable/bg_circle_translucent"
             android:contentDescription="تبديل الوضع الليلي/النهاري"
             android:padding="11dp"
@@ -34,6 +34,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/tvThemeHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:alpha="0.9"
+            android:text="المظهر"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            app:layout_constraintStart_toEndOf="@id/btnLoginThemeToggle"
+            app:layout_constraintTop_toTopOf="@id/btnLoginThemeToggle"
+            app:layout_constraintBottom_toBottomOf="@id/btnLoginThemeToggle" />
 
         <!-- شعار داخل بطاقة دائرية بيضاء -->
         <com.google.android.material.card.MaterialCardView
