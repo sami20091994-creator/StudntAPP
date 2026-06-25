@@ -30,9 +30,18 @@ class NotificationsActivity : BaseActivity() {
         rv = findViewById(R.id.rvNotifications)
         rv.layoutManager = LinearLayoutManager(this)
 
-        findViewById<TextView>(R.id.btnMarkAllRead).setOnClickListener { markAllRead() }
-
         loadNotifications()
+    }
+
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menu.add(0, 1, 0, "تعليم الكل كمقروء")
+            .setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        if (item.itemId == 1) { markAllRead(); return true }
+        return super.onOptionsItemSelected(item)
     }
 
     /** ضغط الإشعار: يُعلّمه مقروءاً ويأخذنا إلى الدردشة (المحادثة المحدّدة إن توفّر المرسل). */
@@ -97,13 +106,18 @@ class NotificationsAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
-        val isMessage = item.type == "message"
+        // رسالة إذا كان النوع "message" أو وُجد اسم مرسل/محادثة (حتى لو النوع مفقود من API).
+        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank()
         if (isMessage) {
-            // إشعار رسالة: نعرض اسم المرسل ونوضّح أنها رسالة وأنها قابلة للفتح.
-            holder.title.text = "💬 رسالة من ${item.senderName ?: "مستخدم"}"
+            // رسالة: اسم المرسل كعنوان + مضمون الرسالة تحته.
+            val nm = item.senderName?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.title?.takeIf { it.isNotBlank() && it != "null" }
+                ?: "مرسل غير معروف"
+            holder.title.text = "💬 $nm"
             holder.message.text = item.message ?: "اضغط لفتح المحادثة"
         } else {
-            holder.title.text = item.title
+            // إشعار متابعة: نص الإشعار.
+            holder.title.text = item.title ?: "إشعار"
             holder.message.text = item.message
         }
         holder.time.text = item.createdAt ?: item.date

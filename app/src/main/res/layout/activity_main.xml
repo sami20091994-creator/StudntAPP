@@ -16,44 +16,16 @@
         <View
             android:id="@+id/topBackground"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="330dp"
             android:background="@drawable/bg_login_header"
             app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- مبدّل الوضع الليلي/النهاري — دائرة واضحة تراعي حدود الشاشة والنوتش -->
-        <ImageButton
-            android:id="@+id/btnLoginThemeToggle"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:layout_marginStart="18dp"
-            android:layout_marginTop="38dp"
-            android:background="@drawable/bg_circle_translucent"
-            android:contentDescription="تبديل الوضع الليلي/النهاري"
-            android:padding="11dp"
-            android:src="@drawable/ic_dark_mode"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/white" />
-
-        <TextView
-            android:id="@+id/tvThemeHint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:alpha="0.9"
-            android:text="المظهر"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            app:layout_constraintStart_toEndOf="@id/btnLoginThemeToggle"
-            app:layout_constraintTop_toTopOf="@id/btnLoginThemeToggle"
-            app:layout_constraintBottom_toBottomOf="@id/btnLoginThemeToggle" />
 
         <!-- شعار داخل بطاقة دائرية بيضاء -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/logoCard"
             android:layout_width="108dp"
             android:layout_height="108dp"
-            android:layout_marginTop="64dp"
+            android:layout_marginTop="80dp"
             app:cardCornerRadius="54dp"
             app:cardElevation="10dp"
             app:cardBackgroundColor="@color/white"
@@ -99,10 +71,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="22dp"
-            android:layout_marginTop="40dp"
-            android:layout_marginBottom="28dp"
-            app:cardCornerRadius="26dp"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="56dp"
+            android:layout_marginBottom="32dp"
+            app:cardCornerRadius="28dp"
             app:cardElevation="6dp"
             app:cardBackgroundColor="@color/surface"
             app:layout_constraintTop_toBottomOf="@id/tvWelcome"
@@ -113,7 +85,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="28dp">
+                android:paddingHorizontal="26dp"
+                android:paddingTop="34dp"
+                android:paddingBottom="30dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -121,14 +95,14 @@
                     android:text="تسجيل الدخول"
                     android:textAlignment="center"
                     android:textColor="@color/ink"
-                    android:textSize="21sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="32dp"
                     android:text="أدخل بياناتك للمتابعة إلى حسابك"
                     android:textAlignment="center"
                     android:textColor="@color/ink_muted"
@@ -137,7 +111,7 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginBottom="20dp"
                     android:hint="رقم الهاتف"
                     app:boxCornerRadiusBottomEnd="14dp"
                     app:boxCornerRadiusBottomStart="14dp"
@@ -154,13 +128,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="phone"
+                        android:imeOptions="actionNext"
+                        android:singleLine="true"
                         android:textColor="@color/ink" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="28dp"
+                    android:layout_marginBottom="30dp"
                     android:hint="كلمة المرور"
                     app:boxCornerRadiusBottomEnd="14dp"
                     app:boxCornerRadiusBottomStart="14dp"
@@ -178,13 +154,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
+                        android:imeOptions="actionDone"
+                        android:singleLine="true"
                         android:textColor="@color/ink" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnLogin"
                     android:layout_width="match_parent"
-                    android:layout_height="58dp"
+                    android:layout_height="60dp"
                     android:text="دخول"
                     android:textSize="17sp"
                     android:textStyle="bold"
@@ -197,7 +175,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="20dp"
                     android:background="?attr/selectableItemBackground"
                     android:padding="8dp"
                     android:text="نسيت كلمة المرور؟"
@@ -205,14 +183,26 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="24dp"
+                    android:background="@color/divider" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="20dp"
                     android:gravity="center"
                     android:text="منصّة رسالتي التعليمية"
                     android:textColor="@color/ink_faint"
                     android:textSize="12sp" />
+
+                <include
+                    layout="@layout/layout_social_links"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

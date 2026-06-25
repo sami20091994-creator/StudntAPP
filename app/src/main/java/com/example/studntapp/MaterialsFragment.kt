@@ -67,6 +67,7 @@ class MaterialsFragment : Fragment(), BackInterceptor {
         currentSubjectId = 0
         setTitle("قائمة المواد الدراسية")
         fabUpload.visibility = View.GONE
+        activity?.findViewById<View?>(R.id.fabMessages)?.translationY = 0f
 
         RetrofitClient.instance.getSubjects(userId = userId, role = role)
             .enqueue(object : Callback<SubjectListResponse> {
@@ -93,8 +94,10 @@ class MaterialsFragment : Fragment(), BackInterceptor {
 
     private fun loadMaterialsForSubject(subjectId: Int, subjectName: String) {
         currentSubjectId = subjectId
-        setTitle("الملفات التعليمية المرفوعة")
+        setTitle("المواد الدراسية المرفوعة")
         fabUpload.visibility = if (role == "teacher") View.VISIBLE else View.GONE
+        if (role == "teacher")
+            activity?.findViewById<View?>(R.id.fabMessages)?.translationY = -resources.displayMetrics.density * 70
 
         RetrofitClient.instance.getSubjectMaterials(subjectId = subjectId).enqueue(object : Callback<MaterialResponse> {
             override fun onResponse(call: Call<MaterialResponse>, response: Response<MaterialResponse>) {

@@ -13,7 +13,6 @@ import android.provider.Settings
 import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -39,6 +38,7 @@ class MainActivity : AppCompatActivity() {
         ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
         ThemeManager.forceRtl(this)
+        ThemeManager.maybeFadeIn(this)
 
         // الأذونات
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -139,16 +139,12 @@ class MainActivity : AppCompatActivity() {
 
     /** استعادة كلمة المرور: يرسل الطلب للسيرفر عبر API ليتولّى المعهد الموافقة. */
     private fun showForgotPasswordDialog() {
-        val input = EditText(this).apply {
-            hint = "رقم الهاتف المسجّل"
-            inputType = InputType.TYPE_CLASS_PHONE
-            setText(etPhone.text?.toString() ?: "")
-            setPadding(48, 32, 48, 32)
-        }
-        AlertDialog.Builder(this)
+        val v = layoutInflater.inflate(R.layout.dialog_forgot_password, null)
+        val input = v.findViewById<EditText>(R.id.etForgotPhone)
+        input.setText(etPhone.text?.toString() ?: "")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle("استعادة كلمة المرور")
-            .setMessage("أدخل رقم هاتفك المسجّل، وسيُرسَل طلبك إلى إدارة المعهد لإعادة التعيين.")
-            .setView(input)
+            .setView(v)
             .setPositiveButton("إرسال") { _, _ ->
                 val phone = input.text.toString().trim()
                 if (phone.isEmpty()) {
@@ -158,11 +154,18 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "جارٍ إرسال الطلب...", Toast.LENGTH_SHORT).show()
                 RetrofitClient.instance.forgotPassword(phone = phone).enqueue(object : Callback<SimpleResponse> {
                     override fun onResponse(call: Call<SimpleResponse>, response: Response<SimpleResponse>) {
-                        val msg = response.body()?.message ?: "تم استلام طلبك، سيتم التواصل معك قريباً."
+                        val raw = response.body()?.message
+                        val ok = response.body()?.status == "success"
+                        // نتجاهل رسائل السيرفر الغامضة (مثل "إجراء غير معروف") ونعرض رسالة واضحة.
+                        val msg = when {
+                            ok -> raw ?: "تم إرسال طلبك بنجاح، سيتم التواصل معك قريباً."
+                            raw != null && !raw.contains("معروف") && !raw.contains("unknown", true) -> raw
+                            else -> "تعذّر تنفيذ الطلب حالياً. يرجى التواصل مع إدارة المعهد لإعادة التعيين."
+                        }
                         Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                     }
                     override fun onFailure(call: Call<SimpleResponse>, t: Throwable) {
-                        Toast.makeText(this@MainActivity, "تعذّر الاتصال بالسيرفر", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "تعذّر الاتصال، تحقّق من اتصالك بالإنترنت", Toast.LENGTH_SHORT).show()
                     }
                 })
             }
@@ -177,17 +180,25 @@ class MainActivity : AppCompatActivity() {
         etPassword = findViewById(R.id.etNewPassword)
         btnLogin = findViewById(R.id.btnLogin)
 
-        // مبدّل الوضع الليلي/النهاري داخل شاشة الدخول (حركة لطيفة عند التبديل).
-        val btnTheme = findViewById<ImageButton>(R.id.btnLoginThemeToggle)
-        btnTheme.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
-        btnTheme.setOnClickListener {
-            ThemeManager.setNight(this, !ThemeManager.isNight(this))
-            recreate()
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        // تركيز المؤشر تلقائياً على حقل الهاتف وإظهار لوحة المفاتيح.
+        etPhone.requestFocus()
+        etPhone.post {
+            (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                .showSoftInput(etPhone, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+        // زر Enter: الهاتف → كلمة المرور → ثم تسجيل الدخول.
+        etPhone.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) { etPassword.requestFocus(); true } else false
+        }
+        etPassword.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { btnLogin.performClick(); true } else false
         }
 
         // نسيت كلمة المرور؟
         findViewById<TextView>(R.id.btnForgotPassword).setOnClickListener { showForgotPasswordDialog() }
+
+        // أزرار التواصل الاجتماعي أسفل شاشة الدخول.
+        SocialLinks.wire(findViewById(android.R.id.content))
 
         val deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
 
@@ -226,16 +237,21 @@ class MainActivity : AppCompatActivity() {
                                     finish()
                                 }
                                 "require_new_password" -> Toast.makeText(this@MainActivity, apiResponse.message, Toast.LENGTH_LONG).show()
-                                else -> Toast.makeText(this@MainActivity, apiResponse.message ?: "فشل تسجيل الدخول", Toast.LENGTH_LONG).show()
+                                else -> Toast.makeText(this@MainActivity, apiResponse.message ?: "رقم الهاتف أو كلمة المرور غير صحيحة", Toast.LENGTH_LONG).show()
                             }
                         } else {
-                            Toast.makeText(this@MainActivity, "خطأ في الاتصال بالخادم", Toast.LENGTH_SHORT).show()
+                            // رمز غير ناجح: غالباً بيانات دخول خاطئة (4xx)، وليس خطأ اتصال.
+                            val m = if (response.code() in 400..499)
+                                "رقم الهاتف أو كلمة المرور غير صحيحة"
+                            else
+                                "تعذّر الوصول إلى الخادم، حاول لاحقاً"
+                            Toast.makeText(this@MainActivity, m, Toast.LENGTH_LONG).show()
                         }
                     }
                     override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                         btnLogin.isEnabled = true
                         btnLogin.text = "دخول"
-                        Toast.makeText(this@MainActivity, "خطأ في الاتصال: ${t.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "تعذّر الاتصال، تحقّق من اتصالك بالإنترنت", Toast.LENGTH_LONG).show()
                     }
                 })
         }

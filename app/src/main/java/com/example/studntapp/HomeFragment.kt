@@ -36,6 +36,11 @@ class HomeFragment : Fragment() {
         val prefs = ctx.getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val studentId = prefs.getInt("USER_ID", 0)
 
+        // ترحيب باسم المستخدم
+        val userName = prefs.getString("USER_NAME", "")?.trim().orEmpty()
+        val tvWelcome: TextView = view.findViewById(R.id.tvWelcome)
+        tvWelcome.text = if (userName.isEmpty()) "مرحباً بك" else "مرحباً بك، $userName"
+
         loadAnnouncements(studentId, rvAnn, tvAnnEmpty)
 
         RetrofitClient.instance.getDailyReport(studentId = studentId).enqueue(object : Callback<DailyReportResponse> {

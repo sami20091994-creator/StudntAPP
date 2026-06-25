@@ -116,49 +116,31 @@ class ReportSubjectsAdapter(
 ) : RecyclerView.Adapter<ReportSubjectsAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
-        val title: TextView = v.findViewById(android.R.id.text1)
+        val title: TextView = v.findViewById(R.id.tvSubjectName)
+        val teacher: TextView = v.findViewById(R.id.tvTeacherName)
+        val semester: TextView = v.findViewById(R.id.tvSemester)
+        val status: TextView = v.findViewById(R.id.tvStatus)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        // بناء تصميم بسيط برمجياً لعرض اسم المادة + المجموعة
-        val ctx = parent.context
-        val layout = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setPadding(40, 40, 40, 40)
-            setBackgroundColor(ContextCompat.getColor(ctx, R.color.surface)) // يستجيب للوضع الليلي
-        }
-
-        // لون الثيم الأساسي لتلوين الأيقونة.
-        val primaryTv = android.util.TypedValue()
-        ctx.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, primaryTv, true)
-
-        val tvTitle = TextView(ctx).apply {
-            id = android.R.id.text1
-            textSize = 17f
-            setTextColor(ContextCompat.getColor(ctx, R.color.ink))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            // أيقونة مادة احترافية على اليسار، ملوّنة بلون الثيم.
-            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_subject_book, 0, 0, 0)
-            compoundDrawablePadding = 26
-            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(primaryTv.data)
-        }
-
-        val divider = View(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 30 }
-            setBackgroundColor(ContextCompat.getColor(ctx, R.color.line)) // يستجيب للوضع الليلي
-        }
-
-        layout.addView(tvTitle)
-        layout.addView(divider)
-
-        return VH(layout)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+        VH(LayoutInflater.from(parent.context).inflate(R.layout.item_subject, parent, false))
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
-        // الاسم هنا سيأتي من السيرفر مدمجاً بـ [اسم المجموعة]
         holder.title.text = item.subjectName
+
+        // فقاعة المدرّس
+        val t = item.teacherName?.takeIf { it.isNotBlank() && it != "null" }
+        holder.teacher.text = t ?: ""
+        holder.teacher.visibility = if (t != null) View.VISIBLE else View.GONE
+
+        // فقاعة الحالة (نشطة/منتهية…)
+        val s = item.status?.takeIf { it.isNotBlank() && it != "null" }
+        holder.status.text = s ?: ""
+        holder.status.visibility = if (s != null) View.VISIBLE else View.GONE
+
+        // الفصل الدراسي غير متوفّر في بيانات السيرفر حالياً → يبقى مخفياً.
+        holder.semester.visibility = View.GONE
 
         holder.itemView.setOnClickListener { onItemClick(item) }
     }

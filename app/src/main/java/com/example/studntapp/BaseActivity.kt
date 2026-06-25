@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -50,6 +51,7 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
         ThemeManager.forceRtl(this)
+        ThemeManager.maybeFadeIn(this)
         appliedSignature = ThemeManager.currentSignature(this)
     }
 
@@ -200,10 +202,12 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
 
         fun render(list: List<NotificationData>) {
             container.removeAllViews()
-            if (list.isEmpty()) {
+            // الفقاعة تعرض غير المقروء فقط → بعد القراءة/تعليم الكل يختفي الإشعار.
+            val unread = list.filter { !NotifReadStore.isRead(this, it) }
+            if (unread.isEmpty()) {
                 container.addView(bubbleEmptyRow())
             } else {
-                list.take(8).forEach { container.addView(bubbleRow(it)) }
+                unread.take(8).forEach { container.addView(bubbleRow(it)) }
             }
         }
 
@@ -241,20 +245,57 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
+        // اعتبره رسالة إذا كان النوع "message" أو وُجد اسم مرسل/محادثة (حتى لو النوع مفقود من API).
+        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank()
+        // وسم النوع (رسالة / إشعار) بلون الثيم.
         row.addView(TextView(this).apply {
-            text = item.title
-            setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink))
-            textSize = 14f
+            text = if (isMessage) "رسالة" else "إشعار"
+            setTextColor(themeColor(com.google.android.material.R.attr.colorPrimary))
+            textSize = 11f
             setTypeface(null, android.graphics.Typeface.BOLD)
             gravity = android.view.Gravity.END
         })
-        row.addView(TextView(this).apply {
-            text = item.message
-            setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink_muted))
-            textSize = 13f
-            gravity = android.view.Gravity.END
-            setPadding(0, dp(2), 0, 0)
-        })
+        if (isMessage) {
+            // اسم المرسل كعنوان أصغر + مضمون الرسالة تحته.
+            val sender = item.senderName?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.title?.takeIf { it.isNotBlank() && it != "null" }
+                ?: "مرسل غير معروف"
+            row.addView(TextView(this).apply {
+                text = sender
+                setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink))
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                gravity = android.view.Gravity.END
+                setPadding(0, dp(2), 0, 0)
+            })
+            row.addView(TextView(this).apply {
+                text = item.message
+                setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink_muted))
+                textSize = 13f
+                gravity = android.view.Gravity.END
+                setPadding(0, dp(1), 0, 0)
+            })
+        } else {
+            // إشعار: عنوان (إن وُجد، غالباً اسم الجهة/نوع المتابعة) ثم النص تحته.
+            val heading = item.title?.takeIf { it.isNotBlank() && it != "null" }
+            if (heading != null) {
+                row.addView(TextView(this).apply {
+                    text = heading
+                    setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink))
+                    textSize = 14f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    gravity = android.view.Gravity.END
+                    setPadding(0, dp(2), 0, 0)
+                })
+            }
+            row.addView(TextView(this).apply {
+                text = item.message ?: heading
+                setTextColor(ContextCompat.getColor(this@BaseActivity, R.color.ink_muted))
+                textSize = 13f
+                gravity = android.view.Gravity.END
+                setPadding(0, dp(1), 0, 0)
+            })
+        }
         item.createdAt?.let { t ->
             row.addView(TextView(this).apply {
                 text = t
@@ -333,22 +374,19 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu_drawer)
-        toolbar.setNavigationOnClickListener {
-            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                drawerLayout.closeDrawer(GravityCompat.START)
-            } else {
-                drawerLayout.openDrawer(GravityCompat.START)
-            }
-        }
+        // الزر يفتح Bottom Sheet عصري بدل الدرج الجانبي.
+        toolbar.setNavigationOnClickListener { showNavSheet() }
+        // قفل الدرج القديم (لا يُفتح بالسحب من الحافة).
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
 
         // رأس الدرج
         val headerView = navigationView.getHeaderView(0)
+        SocialLinks.wire(headerView) // أزرار التواصل أسفل السايدبار
         val tvNavName = headerView.findViewById<TextView>(R.id.tvNavName)
         val tvNavRole = headerView.findViewById<TextView>(R.id.tvNavRole)
         val tvNavCheckIn = headerView.findViewById<TextView?>(R.id.tvNavCheckIn)
         val tvNavCheckOut = headerView.findViewById<TextView?>(R.id.tvNavCheckOut)
         val ivNavPhoto = headerView.findViewById<ImageView?>(R.id.ivNavPhoto)
-        val btnTheme = headerView.findViewById<ImageButton?>(R.id.btnNavThemeToggle)
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         tvNavName.text = prefs.getString("USER_NAME", "مستخدم")
@@ -360,16 +398,6 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         if (!img.isNullOrEmpty() && ivNavPhoto != null) {
             val url = if (img.startsWith("http")) img else RetrofitClient.BASE_URL + img
             Glide.with(this).load(url).placeholder(R.mipmap.ic_launcher_round).into(ivNavPhoto)
-        }
-
-        // مبدّل الوضع الليلي/النهاري
-        btnTheme?.setImageResource(
-            if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode
-        )
-        btnTheme?.setOnClickListener {
-            ThemeManager.setNight(this, !ThemeManager.isNight(this))
-            drawerLayout.closeDrawer(GravityCompat.START)
-            recreate()
         }
     }
 
@@ -510,29 +538,167 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        drawerLayout.closeDrawer(GravityCompat.START)
-        drawerLayout.postDelayed({
-            when (item.itemId) {
-                R.id.nav_study_hours -> if (this !is StudyHoursActivity) openDetail(Intent(this, StudyHoursActivity::class.java))
-                R.id.nav_online_lectures -> if (this !is OnlineLecturesActivity) openDetail(Intent(this, OnlineLecturesActivity::class.java))
-                R.id.nav_auto_quizzes -> if (this !is AutoExamsListActivity) openDetail(Intent(this, AutoExamsListActivity::class.java))
-                R.id.nav_evaluation -> if (this !is EvaluationActivity) openDetail(Intent(this, EvaluationActivity::class.java))
-                R.id.nav_statement -> if (this !is StatementActivity) openDetail(Intent(this, StatementActivity::class.java))
-                R.id.nav_messages -> if (this !is MessagesActivity) openDetail(Intent(this, MessagesActivity::class.java))
-                R.id.nav_notifications -> openDetail(Intent(this, NotificationsActivity::class.java))
-                R.id.nav_financials -> openDetail(Intent(this, TeacherFinancialsActivity::class.java))
-                R.id.nav_students_payments -> openDetail(Intent(this, TeacherStudentsPaymentsActivity::class.java))
-                R.id.nav_settings -> if (this !is SettingsActivity) openDetail(Intent(this, SettingsActivity::class.java))
-                R.id.nav_logout -> {
-                    getSharedPreferences("AppSession", Context.MODE_PRIVATE).edit().clear().apply()
-                    val i = Intent(this, MainActivity::class.java)
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    startActivity(i)
-                    finishAffinity()
-                }
-            }
-        }, 220)
+        handleNavId(item.itemId)
         return true
+    }
+
+    /** توجيه موحّد للوجهات — يُستخدم من الـ Bottom Sheet (والدرج القديم). */
+    private fun handleNavId(id: Int) {
+        when (id) {
+            R.id.nav_study_hours -> if (this !is StudyHoursActivity) openDetail(Intent(this, StudyHoursActivity::class.java))
+            R.id.nav_online_lectures -> if (this !is OnlineLecturesActivity) openDetail(Intent(this, OnlineLecturesActivity::class.java))
+            R.id.nav_auto_quizzes -> if (this !is AutoExamsListActivity) openDetail(Intent(this, AutoExamsListActivity::class.java))
+            R.id.nav_evaluation -> if (this !is EvaluationActivity) openDetail(Intent(this, EvaluationActivity::class.java))
+            R.id.nav_statement -> if (this !is StatementActivity) openDetail(Intent(this, StatementActivity::class.java))
+            R.id.nav_messages -> if (this !is MessagesActivity) openDetail(Intent(this, MessagesActivity::class.java))
+            R.id.nav_notifications -> openDetail(Intent(this, NotificationsActivity::class.java))
+            R.id.nav_financials -> openDetail(Intent(this, TeacherFinancialsActivity::class.java))
+            R.id.nav_students_payments -> openDetail(Intent(this, TeacherStudentsPaymentsActivity::class.java))
+            R.id.nav_settings -> if (this !is SettingsActivity) openDetail(Intent(this, SettingsActivity::class.java))
+            R.id.nav_logout -> {
+                getSharedPreferences("AppSession", Context.MODE_PRIVATE).edit().clear().apply()
+                val i = Intent(this, MainActivity::class.java)
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                startActivity(i)
+                finishAffinity()
+            }
+        }
+    }
+
+    // ===== Modal Bottom Sheet للتنقّل (بديل عصري للقائمة الجانبية) =====
+    private data class NavCell(val id: Int, val icon: Int, val title: String)
+
+    private fun navCellsForRole(): List<NavCell> = if (isTeacher) listOf(
+        NavCell(R.id.nav_financials, R.drawable.ic_nav_wallet, "الحسابات المالية"),
+        NavCell(R.id.nav_students_payments, R.drawable.ic_nav_payments, "مدفوعات الطلاب"),
+        NavCell(R.id.nav_online_lectures, R.drawable.ic_nav_lectures, "محاضرات أونلاين"),
+        NavCell(R.id.nav_settings, R.drawable.ic_nav_settings, "الإعدادات"),
+        NavCell(R.id.nav_logout, R.drawable.ic_nav_logout, "تسجيل الخروج")
+    ) else listOf(
+        NavCell(R.id.nav_study_hours, R.drawable.ic_nav_hours, "ساعات دراستي"),
+        NavCell(R.id.nav_online_lectures, R.drawable.ic_nav_lectures, "محاضرات أونلاين"),
+        NavCell(R.id.nav_auto_quizzes, R.drawable.ic_nav_quiz, "الاختبارات الذكية"),
+        NavCell(R.id.nav_evaluation, R.drawable.ic_nav_star, "التقييمات"),
+        NavCell(R.id.nav_statement, R.drawable.ic_nav_statement, "كشف الحساب"),
+        NavCell(R.id.nav_settings, R.drawable.ic_nav_settings, "الإعدادات"),
+        NavCell(R.id.nav_logout, R.drawable.ic_nav_logout, "تسجيل الخروج")
+    )
+
+    private fun showNavSheet() {
+        val dlg = android.app.Dialog(this, R.style.Theme_Resalaty_NavPanel)
+        val v = layoutInflater.inflate(R.layout.screen_nav, null)
+        dlg.setContentView(v)
+        dlg.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        dlg.window?.decorView?.layoutDirection = View.LAYOUT_DIRECTION_RTL
+
+        val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
+        v.findViewById<TextView>(R.id.tvNavName).text = "أهلاً، ${prefs.getString("USER_NAME", "مستخدم")}"
+        v.findViewById<TextView>(R.id.tvNavRole).text = if (isTeacher) "حساب معلم" else "حساب طالب"
+        val ivPhoto = v.findViewById<ImageView>(R.id.ivNavPhoto)
+        prefs.getString("USER_IMAGE", null)?.takeIf { it.isNotEmpty() }?.let { img ->
+            val url = if (img.startsWith("http")) img else RetrofitClient.BASE_URL + img
+            Glide.with(this).load(url).placeholder(R.mipmap.ic_launcher_round).circleCrop().into(ivPhoto)
+        }
+
+        // توقيت الدخول/الخروج (للطالب فقط)
+        if (!isTeacher) {
+            v.findViewById<LinearLayout>(R.id.llCheckInOut).visibility = View.VISIBLE
+            v.findViewById<TextView>(R.id.tvNavCheckIn).text = prefs.getString("LAST_CHECK_IN", "--:--")
+            v.findViewById<TextView>(R.id.tvNavCheckOut).text = prefs.getString("LAST_CHECK_OUT", "--:--")
+        }
+
+        v.findViewById<ImageButton>(R.id.btnNavClose).setOnClickListener { dlg.dismiss() }
+
+        val list = v.findViewById<LinearLayout>(R.id.llNavList)
+        val cells = navCellsForRole()
+        // مجموعتان بطاقيتان بزوايا منحنية مثل غوغل: الوجهات + تسجيل الخروج منفصل.
+        list.addView(buildGroupCard(cells.filter { it.id != R.id.nav_logout }, dlg))
+        list.addView(buildGroupCard(cells.filter { it.id == R.id.nav_logout }, dlg))
+
+        dlg.show()
+    }
+
+    /** بطاقة مجموعة بزوايا منحنية تضم صفوفاً بفواصل رفيعة (نمط غوغل). */
+    private fun buildGroupCard(cells: List<NavCell>, dlg: android.app.Dialog): View {
+        val card = androidx.cardview.widget.CardView(this).apply {
+            radius = dp(24).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(ContextCompat.getColor(this@BaseActivity, R.color.surface))
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.setMargins(dp(14), dp(10), dp(14), 0)
+            layoutParams = lp
+        }
+        val inner = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        cells.forEachIndexed { i, cell ->
+            inner.addView(buildNavRow(cell, dlg))
+            if (i < cells.size - 1) {
+                inner.addView(View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).also {
+                        it.marginStart = dp(72) // محاذاة الفاصل تحت النص (بعد الأيقونة)
+                    }
+                    setBackgroundColor(ContextCompat.getColor(this@BaseActivity, R.color.divider))
+                })
+            }
+        }
+        card.addView(inner)
+        return card
+    }
+
+    /** صف وجهة بعرض كامل: أيقونة داخل دائرة + عنوان (نمط غوغل). */
+    private fun buildNavRow(item: NavCell, dlg: android.app.Dialog): View {
+        val isLogout = item.id == R.id.nav_logout
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18), dp(16), dp(18), dp(16))
+            val tv = android.util.TypedValue()
+            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
+            setBackgroundResource(tv.resourceId)
+            isClickable = true
+            isFocusable = true
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        val chip = android.widget.FrameLayout(this)
+        chip.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(ContextCompat.getColor(this@BaseActivity, R.color.surface_alt))
+        }
+        val iv = ImageView(this).apply {
+            setImageResource(item.icon)
+            setColorFilter(
+                if (isLogout) ContextCompat.getColor(this@BaseActivity, R.color.error_red)
+                else themeColor(com.google.android.material.R.attr.colorPrimary)
+            )
+        }
+        chip.addView(iv, android.widget.FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER))
+        row.addView(chip, LinearLayout.LayoutParams(dp(42), dp(42)))
+
+        row.addView(TextView(this).apply {
+            text = item.title
+            textSize = 15f
+            setTextColor(ContextCompat.getColor(this@BaseActivity, if (isLogout) R.color.error_red else R.color.ink))
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            lp.marginStart = dp(24) // مسافة أوسع بين الأيقونة والنص مثل غوغل
+            layoutParams = lp
+        })
+
+        // الإصلاح: استدعاء التوجيه مباشرة قبل الإغلاق (postDelayed على view منفصل كان يُلغى).
+        row.setOnClickListener {
+            val id = item.id
+            dlg.dismiss()
+            handleNavId(id)
+        }
+        return row
     }
 
     override fun onBackPressed() {

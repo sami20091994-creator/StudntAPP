@@ -75,6 +75,8 @@ class HomeShellActivity : BaseActivity() {
         return false
     }
 
+    private var backPressedTime = 0L
+
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -89,6 +91,12 @@ class HomeShellActivity : BaseActivity() {
             pager.currentItem = 0
             return
         }
-        super.onBackPressed()
+        // تأكيد الخروج بالضغط مرتين خلال ثانيتين.
+        if (System.currentTimeMillis() - backPressedTime < 2000) {
+            super.onBackPressed()
+        } else {
+            backPressedTime = System.currentTimeMillis()
+            android.widget.Toast.makeText(this, "اضغط رجوع مرة أخرى للخروج", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 }

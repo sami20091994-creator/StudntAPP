@@ -66,8 +66,9 @@ class LectureRoomActivity : AppCompatActivity() {
                     androidx.core.view.WindowInsetsCompat.Type.displayCutout()
             )
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
+            androidx.core.view.WindowInsetsCompat.CONSUMED
         }
+        androidx.core.view.ViewCompat.requestApplyInsets(webView)
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val userId = prefs.getInt("USER_ID", 0)

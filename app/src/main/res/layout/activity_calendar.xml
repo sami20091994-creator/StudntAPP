@@ -68,10 +68,11 @@
         android:id="@+id/layoutNavHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/background_light"
+        android:background="@color/surface_white"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="6dp"
         android:visibility="gone">
 
         <ImageButton
@@ -90,9 +91,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
+            android:paddingVertical="10dp"
             android:text="الفترة"
-            android:textColor="@color/text_dark"
-            android:textSize="18sp"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <ImageButton
@@ -122,6 +124,23 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/surface_white" />
+
+            <!-- شريط أيام أفقي يُظهر نقطة تحت كل يوم فيه حصص -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_white"
+                android:scrollbars="none"
+                android:layoutDirection="rtl">
+
+                <LinearLayout
+                    android:id="@+id/dateStrip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="6dp" />
+            </HorizontalScrollView>
 
             <TextView
                 android:id="@+id/tvDailyTitle"

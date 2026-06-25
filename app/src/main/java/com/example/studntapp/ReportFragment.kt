@@ -58,10 +58,16 @@ class ReportFragment : Fragment() {
         mainLayout = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 40, 40, 40)
+            layoutDirection = View.LAYOUT_DIRECTION_RTL // ضمان تدفّق العناصر من اليمين لليسار
         }
 
         val filterLabel = TextView(ctx).apply {
-            text = "تصفية حسب المادة:"; setTextColor(col(R.color.ink_muted)); setPadding(0, 0, 0, 10); gravity = Gravity.END
+            text = "تصفية حسب المادة"
+            textSize = 16f
+            setTextColor(primaryColor())
+            setTypeface(null, Typeface.BOLD)
+            setPadding(4, 0, 4, 14)
+            gravity = Gravity.END
         }
         spinnerSubjects = Spinner(ctx).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)

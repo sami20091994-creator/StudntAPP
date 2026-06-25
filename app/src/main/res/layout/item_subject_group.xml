@@ -3,10 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/surface"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
-    android:elevation="2dp"
+    android:background="@drawable/bg_card_rounded"
+    android:layout_marginVertical="6dp"
     android:padding="16dp">
 
     <TextView
@@ -16,15 +14,16 @@
         android:textColor="?attr/colorPrimary"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:drawablePadding="8dp"
-        android:drawableStart="@android:drawable/ic_menu_agenda"
-        android:drawableTint="#4C53A4"
+        android:drawablePadding="10dp"
+        android:drawableStart="@drawable/ic_nav_lectures"
+        android:drawableTint="?attr/colorPrimary"
+        android:gravity="center_vertical"
         android:layout_marginBottom="12dp"/>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/canvas"
+        android:background="@color/divider"
         android:layout_marginBottom="8dp"/>
 
     <androidx.recyclerview.widget.RecyclerView

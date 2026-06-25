@@ -12,7 +12,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import com.bumptech.glide.Glide
@@ -20,7 +19,7 @@ import com.bumptech.glide.Glide
 /**
  * شاشة الإعدادات:
  *  - معلومات الطالب وحالة الحساب.
- *  - اختيار الثيم (5 باقات) + الوضع الليلي/النهاري.
+ *  - اختيار الثيم (6 باقات لونية تشمل الثيم الداكن الأنيق).
  *  - معلومات وحسابات التواصل، من نحن، فريق التطوير.
  */
 class SettingsActivity : BaseActivity() {
@@ -47,7 +46,6 @@ class SettingsActivity : BaseActivity() {
         }
 
         buildThemeSwatches()
-        setupNightSwitch()
         buildContacts()
 
         // الإصدار
@@ -84,23 +82,33 @@ class SettingsActivity : BaseActivity() {
                 if (p.key != ThemeManager.savedPaletteKey(this)) {
                     ThemeManager.savePalette(this, p.key)
                     Toast.makeText(this, "تم تطبيق: ${p.title}", Toast.LENGTH_SHORT).show()
-                    recreate()
+                    ThemeManager.circularRecreate(this, swatch)
                 }
             }
             container.addView(swatch)
         }
-    }
 
-    private fun setupNightSwitch() {
-        val sw = findViewById<SwitchCompat>(R.id.switchNight)
-        sw.setOnCheckedChangeListener(null)
-        sw.isChecked = ThemeManager.isNight(this)
-        sw.setOnCheckedChangeListener { _, checked ->
-            if (checked != ThemeManager.isNight(this)) {
-                ThemeManager.setNight(this, checked)
-                recreate()
-            }
+        // زر تبديل الوضع الداكن (مستقل عن الباقة، بنفس الانيميشن الدائري)
+        val toggle = ImageView(this)
+        val tlp = LinearLayout.LayoutParams(size, size)
+        tlp.marginStart = dpx(8)
+        toggle.layoutParams = tlp
+        toggle.setPadding(dpx(11), dpx(11), dpx(11), dpx(11))
+        toggle.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(androidx.core.content.ContextCompat.getColor(this@SettingsActivity, R.color.surface_alt))
+            setStroke(dpx(1), Color.parseColor("#33000000"))
         }
+        fun refreshToggleIcon() {
+            toggle.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
+            toggle.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.ink))
+        }
+        refreshToggleIcon()
+        toggle.setOnClickListener {
+            ThemeManager.toggleNight(this)
+            ThemeManager.circularRecreate(this, toggle)
+        }
+        container.addView(toggle)
     }
 
     // ===== التواصل =====

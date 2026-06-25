@@ -38,9 +38,15 @@ class CalendarActivity : BaseActivity() {
     private lateinit var layoutNavHeader: LinearLayout
     private lateinit var tvPeriodName: TextView
     private lateinit var tvDailyTitle: TextView
+    private lateinit var dateStrip: LinearLayout
+    private val eventDays = mutableSetOf<String>() // تواريخ "yyyy-MM-dd" فيها حصص
 
     private val sdfApi = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
     private val monthFormat = SimpleDateFormat("MMMM yyyy", Locale("ar"))
+    // تنسيق عربي موحّد لشريط التاريخ في كل الأوضاع (يومي/أسبوعي/شهري).
+    private val prettyFormat = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
+    private fun pretty(dateStr: String): String =
+        try { sdfApi.parse(dateStr)?.let { prettyFormat.format(it) } ?: dateStr } catch (e: Exception) { dateStr }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +71,7 @@ class CalendarActivity : BaseActivity() {
         layoutNavHeader = findViewById(R.id.layoutNavHeader)
         tvPeriodName = findViewById(R.id.tvPeriodName)
         tvDailyTitle = findViewById(R.id.tvDailyTitle)
+        dateStrip = findViewById(R.id.dateStrip)
 
         // إعداد أزرار التبديل
         findViewById<TextView>(R.id.btnDaily).setOnClickListener { switchViewMode("daily") }
@@ -80,8 +87,9 @@ class CalendarActivity : BaseActivity() {
             val m = if (month + 1 < 10) "0${month + 1}" else "${month + 1}"
             val d = if (dayOfMonth < 10) "0$dayOfMonth" else "$dayOfMonth"
             selectedDateStr = "$year-$m-$d"
-            tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
+            tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
             loadSchedule()
+            loadMonthEvents()
         }
 
         switchViewMode("daily")
@@ -131,7 +139,8 @@ class CalendarActivity : BaseActivity() {
                 viewDaily.visibility = View.VISIBLE
                 val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
                 calendarView.date = cal.timeInMillis
-                tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
+                tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+                loadMonthEvents()
             }
             "weekly" -> {
                 btnW.apply { 
@@ -157,7 +166,7 @@ class CalendarActivity : BaseActivity() {
     private fun updateHeaderTitles() {
         val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
         if (currentViewMode == "weekly") {
-            tvPeriodName.text = "أسبوع: ${selectedDateStr}"
+            tvPeriodName.text = "أسبوع: ${pretty(selectedDateStr)}"
         } else if (currentViewMode == "monthly") {
             tvPeriodName.text = monthFormat.format(cal.time)
         }
@@ -182,6 +191,84 @@ class CalendarActivity : BaseActivity() {
                 Toast.makeText(this@CalendarActivity, "خطأ في الاتصال", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    private fun primaryCol(): Int {
+        val tv = android.util.TypedValue()
+        theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
+        return tv.data
+    }
+
+    /** يجلب حصص الشهر الحالي ليعرف أي أيام فيها أحداث، ثم يبني شريط الأيام. */
+    private fun loadMonthEvents() {
+        RetrofitClient.instance.getFullScheduleFiltered(
+            userId = userId, role = role, date = selectedDateStr, viewMode = "monthly"
+        ).enqueue(object : Callback<List<ScheduleData>> {
+            override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
+                eventDays.clear()
+                response.body()?.forEach { it.startDate?.let { d -> eventDays.add(d) } }
+                buildDateStrip()
+            }
+            override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) { buildDateStrip() }
+        })
+    }
+
+    /** شريط أيام أفقي (±) مع نقطة تحت اليوم الذي فيه حصص. */
+    private fun buildDateStrip() {
+        dateStrip.removeAllViews()
+        val d = resources.displayMetrics.density
+        fun px(v: Int) = (v * d).toInt()
+        val wkFmt = SimpleDateFormat("EEE", Locale("ar"))
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        cal.add(Calendar.DAY_OF_MONTH, -3)
+
+        for (i in 0 until 14) {
+            val dateStr = sdfApi.format(cal.time)
+            val millis = cal.timeInMillis
+            val isSel = dateStr == selectedDateStr
+            val hasEvent = eventDays.contains(dateStr)
+
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setPadding(px(12), px(8), px(12), px(8))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginEnd = px(6) }
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = px(16).toFloat()
+                    setColor(if (isSel) primaryCol() else col(R.color.surface_alt))
+                }
+                isClickable = true
+            }
+            cell.addView(TextView(this).apply {
+                text = wkFmt.format(Date(millis)); textSize = 11f
+                setTextColor(if (isSel) Color.WHITE else col(R.color.ink_muted))
+            })
+            cell.addView(TextView(this).apply {
+                text = "${(Calendar.getInstance().apply { timeInMillis = millis }).get(Calendar.DAY_OF_MONTH)}"
+                textSize = 16f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(if (isSel) Color.WHITE else col(R.color.ink))
+            })
+            cell.addView(View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(px(6), px(6)).apply { topMargin = px(4) }
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(if (isSel) Color.WHITE else primaryCol())
+                }
+                visibility = if (hasEvent) View.VISIBLE else View.INVISIBLE
+            })
+            cell.setOnClickListener {
+                selectedDateStr = dateStr
+                calendarView.date = millis
+                tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+                loadSchedule()
+                buildDateStrip()
+            }
+            dateStrip.addView(cell)
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+        }
     }
 
     // ========================================================

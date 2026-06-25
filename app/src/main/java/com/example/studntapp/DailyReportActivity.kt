@@ -23,6 +23,10 @@ class DailyReportActivity : BaseActivity() {
         setContentView(R.layout.activity_daily_report)
         supportActionBar?.title = "الرئيسية"
 
+        // ترحيب باسم المستخدم
+        val userName = getSharedPreferences("AppSession", Context.MODE_PRIVATE).getString("USER_NAME", "")?.trim().orEmpty()
+        findViewById<TextView>(R.id.tvWelcome).text = if (userName.isEmpty()) "مرحباً بك" else "مرحباً بك، $userName"
+
         val tvDate: TextView = findViewById(R.id.tvDailyDate)
         val rvQuizzes: RecyclerView = findViewById(R.id.rvDailyQuizzes)
         val rvAnn: RecyclerView = findViewById(R.id.rvAnnouncements)

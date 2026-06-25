@@ -4,7 +4,10 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.MediaRecorder
@@ -18,12 +21,17 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import com.pusher.client.Pusher
 import com.pusher.client.PusherOptions
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -73,6 +81,11 @@ class MessagesActivity : BaseActivity() {
     private var allMessagesList = listOf<ChatMessageData>()
     private var chatAdapter: AdvancedChatAdapter? = null
 
+    private lateinit var chatListAdapter: ChatListAdapter
+    private var showingArchived = false
+    private var currentFilter = "all" // all | unread | groups | list:<name>
+    private lateinit var llChatFilters: LinearLayout
+
     // محرك WebSockets اللحظي
     private var pusher: Pusher? = null
 
@@ -82,6 +95,24 @@ class MessagesActivity : BaseActivity() {
         // قائمة المحادثات تستخدم شريط الهيكل الموحّد (كباقي الشاشات). وعند فتح
         // غرفة المحادثة نُخفي شريط الهيكل ليظهر شريط الغرفة الخاص (رجوع + اسم).
         supportActionBar?.title = "الرسائل والدردشة"
+
+        // إخفاء الشريط السفلي للتنقّل داخل شاشة المحادثات (مثل تيليجرام/واتساب)،
+        // وإلغاء الحشوة السفلية المخصّصة له حتى لا يرتفع شريط الكتابة بعيداً عن أسفل الشاشة.
+        findViewById<View?>(R.id.barBackground)?.visibility = View.GONE
+        findViewById<View?>(R.id.activity_content)?.let { c ->
+            c.setPadding(c.paddingLeft, c.paddingTop, c.paddingRight, 0)
+        }
+
+        // رفع شريط الكتابة فوق لوحة المفاتيح (مع وضع Edge-to-edge): نضيف هامشاً سفلياً
+        // بمقدار ارتفاع الكيبورد أو شريط التنقّل أيهما أكبر.
+        findViewById<View?>(R.id.layoutChatRoom)?.let { room ->
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(room) { v, insets ->
+                val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+                val navBar = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom
+                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, maxOf(ime, navBar))
+                insets
+            }
+        }
 
         // مراعاة النوتش لرأس غرفة المحادثة (يظهر عند إخفاء شريط الهيكل).
         findViewById<View?>(R.id.chatRoomHeader)?.let { header ->
@@ -119,23 +150,39 @@ class MessagesActivity : BaseActivity() {
         rvChatList.layoutManager = LinearLayoutManager(this)
         rvMessages.layoutManager = LinearLayoutManager(this)
 
+        chatListAdapter = ChatListAdapter(
+            ctx = this,
+            onChatClick = { chat -> openChatRoom(chat) },
+            onHeaderClick = { toggleArchiveView() },
+            onAddToList = { name -> showBulkAddDialog(name) },
+            onAction = { chat, action -> handleChatAction(chat, action) }
+        )
+        rvChatList.adapter = chatListAdapter
+        attachChatSwipe()
+
+        llChatFilters = findViewById(R.id.llChatFilters)
+        buildFilterChips()
+
         requestAudioPermission()
 
         etMessage.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (s.isNullOrEmpty()) {
-                    btnSend.visibility = View.GONE
-                    btnRecord.visibility = View.VISIBLE
-                    btnClearText.visibility = View.GONE
-                } else {
-                    btnSend.visibility = View.VISIBLE
-                    btnRecord.visibility = View.GONE
-                    btnClearText.visibility = View.VISIBLE
-                }
+                // فارغ: بار الكتابة ممتد بلا زر إرسال. عند الكتابة: يظهر زر الإرسال بشكل ناعم.
+                val hasText = !s.isNullOrBlank()
+                animateSendButton(hasText)
+                btnSend.visibility = View.VISIBLE
+                btnRecord.visibility = View.GONE
+                btnClearText.visibility = View.GONE
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
+        // الحالة الابتدائية لزر الإرسال (مخفي وناعم)
+        btnActionContainer.alpha = 0f
+        btnActionContainer.scaleX = 0.6f
+        btnActionContainer.scaleY = 0.6f
+        btnActionContainer.visibility = View.GONE
 
         btnClearText.setOnClickListener { etMessage.text.clear() }
 
@@ -151,15 +198,7 @@ class MessagesActivity : BaseActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        btnToggleSearchMessages.setOnClickListener {
-            if (etSearchMessages.visibility == View.VISIBLE) {
-                etSearchMessages.visibility = View.GONE
-                etSearchMessages.text.clear()
-            } else {
-                etSearchMessages.visibility = View.VISIBLE
-                etSearchMessages.requestFocus()
-            }
-        }
+        btnToggleSearchMessages.setOnClickListener { toggleMessageSearch() }
 
         btnSend.setOnClickListener { sendMsg(etMessage.text.toString(), null) }
         btnRecord.setOnClickListener {
@@ -203,13 +242,279 @@ class MessagesActivity : BaseActivity() {
         })
     }
 
-    private fun filterChatList(query: String) {
-        val filtered = if (query.isEmpty()) allChatsList else allChatsList.filter { it.name?.lowercase()?.contains(query.lowercase()) == true }
-        rvChatList.adapter = ChatListAdapter(filtered) { chat -> openChatRoom(chat) }
+    private fun filterChatList(query: String) { refreshChatRows() }
+
+    /** بناء صفوف القائمة: رأس الأرشيف + المحادثات (المثبتة بالأعلى) مع احترام البحث والأرشفة. */
+    private fun refreshChatRows() {
+        val q = etSearchChats.text.toString().lowercase()
+        val visible = allChatsList.filter { c ->
+            val key = ChatPrefs.keyOf(c)
+            val arch = ChatPrefs.isArchived(this, key)
+            (if (showingArchived) arch else !arch) &&
+                (q.isEmpty() || (c.name?.lowercase()?.contains(q) == true)) &&
+                matchesFilter(c, key)
+        }
+        val sorted = if (showingArchived) visible
+            else visible.sortedWith(compareByDescending<ChatEntity> { ChatPrefs.isPinned(this, ChatPrefs.keyOf(it)) })
+
+        val archivedCount = allChatsList.count { ChatPrefs.isArchived(this, ChatPrefs.keyOf(it)) }
+        val rows = mutableListOf<ChatRow>()
+        if (showingArchived) rows.add(ChatRow.Header(archivedCount, true))
+        else if (archivedCount > 0) rows.add(ChatRow.Header(archivedCount, false))
+        // داخل قائمة مخصّصة: صف لإضافة محادثات للقائمة
+        if (!showingArchived && currentFilter.startsWith("list:"))
+            rows.add(ChatRow.AddToList(currentFilter.removePrefix("list:")))
+        sorted.forEach { rows.add(ChatRow.Item(it)) }
+        chatListAdapter.submit(rows)
+    }
+
+    private fun toggleArchiveView() {
+        showingArchived = !showingArchived
+        etSearchChats.setText("")
+        refreshChatRows()
+    }
+
+    /** أرشفة مع انبثاق سفلي للتراجع لمدة 5 ثوانٍ. */
+    private fun archiveWithUndo(chat: ChatEntity) {
+        val key = ChatPrefs.keyOf(chat)
+        ChatPrefs.setArchived(this, key, true)
+        refreshChatRows()
+        Snackbar.make(findViewById(R.id.layoutChatList), "تم نقل \"${chat.name ?: ""}\" للأرشيف", 5000)
+            .setAction("تراجع") {
+                ChatPrefs.setArchived(this, key, false)
+                refreshChatRows()
+            }
+            .setActionTextColor(Color.parseColor("#F7A61B"))
+            .show()
+    }
+
+    private fun matchesFilter(c: ChatEntity, key: String): Boolean = when {
+        currentFilter == "all" -> true
+        currentFilter == "unread" -> ChatPrefs.effectiveUnread(this, c) > 0
+        currentFilter == "groups" -> c.type == "group"
+        currentFilter == "chats" -> c.type != "group"
+        currentFilter.startsWith("list:") -> ChatPrefs.isInList(this, currentFilter.removePrefix("list:"), key)
+        else -> true
+    }
+
+    /** بناء شريط الفلاتر: الكل / غير مقروءة / المجموعات / القوائم المخصّصة + زر إنشاء. */
+    private fun buildFilterChips() {
+        llChatFilters.removeAllViews()
+        val chips = mutableListOf<Pair<String, String>>(
+            "all" to "الكل",
+            "unread" to "غير مقروءة",
+            "chats" to "المحادثات",
+            "groups" to "المجموعات"
+        )
+        ChatPrefs.listNames(this).forEach { chips.add("list:$it" to it) }
+
+        for ((value, label) in chips) {
+            llChatFilters.addView(makeChip(label, value == currentFilter, onClick = {
+                currentFilter = value
+                buildFilterChips()
+                refreshChatRows()
+            }, onLong = if (value.startsWith("list:")) ({ confirmDeleteList(value.removePrefix("list:")) }) else null))
+        }
+        // زر إنشاء قائمة
+        llChatFilters.addView(makeChip("＋ قائمة", false, onClick = { showCreateListDialog() }, onLong = null))
+    }
+
+    private fun makeChip(label: String, selected: Boolean, onClick: () -> Unit, onLong: (() -> Unit)?): TextView {
+        val tv = TextView(this)
+        tv.text = label
+        tv.textSize = 13f
+        tv.setPadding(40, 18, 40, 18)
+        tv.setBackgroundResource(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_unselected)
+        tv.setTextColor(if (selected) Color.WHITE else Color.parseColor("#2F358F"))
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.marginEnd = 16
+        tv.layoutParams = lp
+        tv.setOnClickListener { onClick() }
+        if (onLong != null) tv.setOnLongClickListener { onLong(); true }
+        return tv
+    }
+
+    private fun showCreateListDialog() {
+        val input = EditText(this)
+        input.hint = "اسم القائمة"
+        AlertDialog.Builder(this)
+            .setTitle("إنشاء قائمة جديدة")
+            .setView(input)
+            .setPositiveButton("إنشاء") { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    ChatPrefs.createList(this, name)
+                    currentFilter = "list:$name"
+                    buildFilterChips()
+                    refreshChatRows()
+                    Toast.makeText(this, "أضف محادثات للقائمة بالضغط المطوّل عليها", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    private fun confirmDeleteList(name: String) {
+        AlertDialog.Builder(this)
+            .setTitle("حذف القائمة \"$name\"؟")
+            .setPositiveButton("حذف") { _, _ ->
+                ChatPrefs.deleteList(this, name)
+                if (currentFilter == "list:$name") currentFilter = "all"
+                buildFilterChips()
+                refreshChatRows()
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    /** اختيار متعدّد لكل المحادثات لإضافتها/إزالتها من قائمة محدّدة. */
+    private fun showBulkAddDialog(name: String) {
+        val chats = allChatsList.filter { !ChatPrefs.isArchived(this, ChatPrefs.keyOf(it)) }
+        if (chats.isEmpty()) { Toast.makeText(this, "لا توجد محادثات", Toast.LENGTH_SHORT).show(); return }
+        val labels = chats.map { it.name ?: "—" }.toTypedArray()
+        val checked = BooleanArray(chats.size) { ChatPrefs.isInList(this, name, ChatPrefs.keyOf(chats[it])) }
+        AlertDialog.Builder(this)
+            .setTitle("إضافة محادثات إلى \"$name\"")
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                val key = ChatPrefs.keyOf(chats[which])
+                if (ChatPrefs.isInList(this, name, key) != isChecked)
+                    ChatPrefs.toggleListMember(this, name, key)
+            }
+            .setPositiveButton("تم") { _, _ -> refreshChatRows() }
+            .show()
+    }
+
+    private fun showListPicker(chat: ChatEntity) {
+        val names = ChatPrefs.listNames(this)
+        if (names.isEmpty()) { showCreateListDialog(); return }
+        val key = ChatPrefs.keyOf(chat)
+        val checked = BooleanArray(names.size) { ChatPrefs.isInList(this, names[it], key) }
+        AlertDialog.Builder(this)
+            .setTitle("إضافة إلى قائمة")
+            .setMultiChoiceItems(names.toTypedArray(), checked) { _, which, isChecked ->
+                if (ChatPrefs.isInList(this, names[which], key) != isChecked)
+                    ChatPrefs.toggleListMember(this, names[which], key)
+            }
+            .setPositiveButton("تم") { _, _ -> refreshChatRows() }
+            .show()
+    }
+
+    private fun handleChatAction(chat: ChatEntity, action: String) {
+        val key = ChatPrefs.keyOf(chat)
+        when (action) {
+            "archive" -> { archiveWithUndo(chat); return }
+            "unarchive" -> { ChatPrefs.setArchived(this, key, false); Toast.makeText(this, "تم الإخراج من الأرشيف", Toast.LENGTH_SHORT).show() }
+            "star" -> ChatPrefs.toggleStar(this, key)
+            "pin" -> ChatPrefs.togglePin(this, key)
+            "read" -> ChatPrefs.setRead(this, key)
+            "unread" -> ChatPrefs.setUnread(this, key)
+            "lists" -> { showListPicker(chat); return }
+        }
+        refreshChatRows()
+    }
+
+    private fun attachChatSwipe() {
+        val cb = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun getMovementFlags(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int =
+                if (chatListAdapter.isItem(vh.bindingAdapterPosition))
+                    makeMovementFlags(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)
+                else 0
+
+            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
+
+            // إبطاء الإيماءة: عتبة أكبر وسرعة إفلات أعلى = إحساس أنعم وأقل حدّة.
+            override fun getSwipeThreshold(vh: RecyclerView.ViewHolder) = 0.45f
+            override fun getSwipeEscapeVelocity(defaultValue: Float) = defaultValue * 4f
+            override fun getSwipeVelocityThreshold(defaultValue: Float) = defaultValue * 0.6f
+            // مدّة حركة العودة/الإزاحة (أنعم بدل القفز الفوري).
+            override fun getAnimationDuration(rv: RecyclerView, animType: Int, animateDx: Float, animateDy: Float) = 320L
+
+            override fun onSwiped(vh: RecyclerView.ViewHolder, dir: Int) {
+                val pos = vh.bindingAdapterPosition
+                val chat = chatListAdapter.chatAt(pos)
+                if (chat == null) { refreshChatRows(); return }
+                val key = ChatPrefs.keyOf(chat)
+                if (dir == ItemTouchHelper.LEFT) {
+                    // سحب لليسار: تبديل حالة القراءة
+                    if (ChatPrefs.effectiveUnread(this@MessagesActivity, chat) > 0) ChatPrefs.setRead(this@MessagesActivity, key)
+                    else ChatPrefs.setUnread(this@MessagesActivity, key)
+                    // إن كان فلتر "غير مقروءة" قد يختفي العنصر → أعِد البناء، وإلا حرّكه للخلف بنعومة
+                    if (currentFilter == "unread") refreshChatRows()
+                    else chatListAdapter.notifyItemChanged(pos)
+                } else {
+                    // سحب لليمين: أرشفة (مع تراجع)، أو إخراج من الأرشيف داخل وضع الأرشيف
+                    if (showingArchived) { ChatPrefs.setArchived(this@MessagesActivity, key, false); refreshChatRows() }
+                    else archiveWithUndo(chat)
+                }
+            }
+
+            override fun onChildDraw(c: Canvas, rv: RecyclerView, vh: RecyclerView.ViewHolder,
+                                     dX: Float, dY: Float, state: Int, active: Boolean) {
+                val item = vh.itemView
+                val p = Paint(Paint.ANTI_ALIAS_FLAG)
+                val tp = Paint(Paint.ANTI_ALIAS_FLAG)
+                tp.color = Color.WHITE
+                tp.textSize = 42f
+                tp.isFakeBoldText = true
+                val cy = (item.top + item.bottom) / 2f + 15f
+
+                if (dX > 0) {
+                    // أرشفة
+                    p.color = Color.parseColor("#2F358F")
+                    c.drawRect(item.left.toFloat(), item.top.toFloat(), item.left + dX, item.bottom.toFloat(), p)
+                    val label = if (showingArchived) "↩  إخراج" else "🗄  أرشفة"
+                    tp.textAlign = Paint.Align.LEFT
+                    c.drawText(label, item.left + 48f, cy, tp)
+                } else if (dX < 0) {
+                    // تبديل القراءة
+                    val chat = chatListAdapter.chatAt(vh.bindingAdapterPosition)
+                    val unread = chat != null && ChatPrefs.effectiveUnread(this@MessagesActivity, chat) > 0
+                    p.color = Color.parseColor("#2E7D32")
+                    c.drawRect(item.right + dX, item.top.toFloat(), item.right.toFloat(), item.bottom.toFloat(), p)
+                    val label = if (unread) "تعليم كمقروء  ✓" else "تعليم كغير مقروء  ●"
+                    tp.textAlign = Paint.Align.RIGHT
+                    c.drawText(label, item.right - 48f, cy, tp)
+                }
+                super.onChildDraw(c, rv, vh, dX, dY, state, active)
+            }
+        }
+        ItemTouchHelper(cb).attachToRecyclerView(rvChatList)
     }
 
     private fun openChatRoom(chat: ChatEntity) {
+        ChatPrefs.clearRead(this, ChatPrefs.keyOf(chat))
         openChatDirect(chat.id, chat.type ?: "user", chat.name)
+    }
+
+    /** إظهار/إخفاء زر الإرسال بحركة ناعمة (تلاشٍ + تكبير) بدل الظهور المفاجئ. */
+    private fun animateSendButton(show: Boolean) {
+        // تجنّب إعادة تشغيل الحركة على كل ضغطة حرف
+        if (show && btnActionContainer.visibility == View.VISIBLE && btnActionContainer.alpha == 1f) return
+        if (!show && btnActionContainer.visibility == View.GONE) return
+
+        btnActionContainer.animate().cancel()
+        if (show) {
+            btnActionContainer.visibility = View.VISIBLE
+            btnActionContainer.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(180L)
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction(null)
+                .start()
+        } else {
+            btnActionContainer.animate()
+                .alpha(0f)
+                .scaleX(0.6f)
+                .scaleY(0.6f)
+                .setDuration(150L)
+                .setInterpolator(AccelerateInterpolator())
+                .withEndAction { btnActionContainer.visibility = View.GONE }
+                .start()
+        }
     }
 
     /** فتح محادثة مباشرةً بمعرّف ونوع واسم — يُستخدم من القائمة ومن الإشعارات. */
@@ -219,10 +524,30 @@ class MessagesActivity : BaseActivity() {
         isGroupChat = (currentTargetType == "group")
         tvRoomName.text = targetName
 
-        // داخل الغرفة نُخفي شريط الهيكل ليظهر شريط الغرفة الخاص (رجوع + اسم المحادثة).
+        // داخل الغرفة نُخفي حاوية شريط الهيكل كاملةً (وليس الـToolbar فقط)، حتى لا تبقى
+        // حشوة شريط الحالة كمساحة فارغة فوق رأس المحادثة.
         supportActionBar?.hide()
+        findViewById<View?>(R.id.appbar)?.visibility = View.GONE
         layoutChatList.visibility = View.GONE
         layoutChatRoom.visibility = View.VISIBLE
+
+        // أيقونة جهة الاتصال (حرف أول) + حالة + إظهار زر الإرسال.
+        findViewById<TextView?>(R.id.tvRoomAvatar)?.text =
+            if (isGroupChat) "👥" else (targetName?.trim()?.firstOrNull()?.toString()?.uppercase() ?: "👤")
+        findViewById<TextView?>(R.id.tvRoomStatus)?.text = if (isGroupChat) "مجموعة" else "محادثة خاصة"
+        // الحالة الابتدائية: لا زر إرسال (الحقل فارغ) ليمتدّ بار الكتابة.
+        btnActionContainer.animate().cancel()
+        btnActionContainer.alpha = 0f
+        btnActionContainer.scaleX = 0.6f
+        btnActionContainer.scaleY = 0.6f
+        btnActionContainer.visibility = View.GONE
+        btnSend.visibility = View.GONE
+        btnRecord.visibility = View.GONE
+
+        // تأثير حركي لطيف عند الدخول للمحادثة.
+        layoutChatRoom.alpha = 0f
+        layoutChatRoom.translationX = layoutChatRoom.width.toFloat().coerceAtLeast(200f)
+        layoutChatRoom.animate().alpha(1f).translationX(0f).setDuration(260).start()
 
         chatAdapter = AdvancedChatAdapter(emptyList(), userId, role, isGroupChat)
         rvMessages.adapter = chatAdapter
@@ -260,21 +585,55 @@ class MessagesActivity : BaseActivity() {
         }
     }
 
+    /** إظهار/إخفاء شريط البحث داخل المحادثة بحركة لطيفة. */
+    private fun toggleMessageSearch() {
+        val card = findViewById<View>(R.id.cardSearchMessages)
+        if (card.visibility == View.VISIBLE) {
+            card.animate().alpha(0f).setDuration(160).withEndAction {
+                card.visibility = View.GONE
+                etSearchMessages.setText("")
+            }.start()
+        } else {
+            card.alpha = 0f
+            card.visibility = View.VISIBLE
+            card.animate().alpha(1f).setDuration(220).start()
+            etSearchMessages.requestFocus()
+        }
+    }
+
     private fun closeChatRoom() {
-        pusher?.disconnect()
-        pusher = null
-        etSearchMessages.text.clear()
-        etSearchMessages.visibility = View.GONE
-        layoutChatRoom.visibility = View.GONE
-        layoutChatList.visibility = View.VISIBLE
-        // العودة للقائمة: نُظهر شريط الهيكل الموحّد مجدداً.
-        supportActionBar?.show()
-        chatAdapter = null
-        loadChatList()
+        val room = layoutChatRoom
+        // تأثير خروج انزلاقي ناعم ثم العودة للقائمة.
+        room.animate()
+            .alpha(0f)
+            .translationX(room.width.toFloat().coerceAtLeast(200f))
+            .setDuration(220)
+            .withEndAction {
+                pusher?.disconnect()
+                pusher = null
+                etSearchMessages.setText("")
+                findViewById<View?>(R.id.cardSearchMessages)?.visibility = View.GONE
+                room.visibility = View.GONE
+                room.translationX = 0f
+                room.alpha = 1f
+                layoutChatList.visibility = View.VISIBLE
+                // العودة للقائمة: نُظهر شريط الهيكل الموحّد مجدداً.
+                findViewById<View?>(R.id.appbar)?.visibility = View.VISIBLE
+                supportActionBar?.show()
+                chatAdapter = null
+                loadChatList()
+            }
+            .start()
     }
 
     override fun onBackPressed() {
-        if (layoutChatRoom.visibility == View.VISIBLE) closeChatRoom() else super.onBackPressed()
+        val searchCard = findViewById<View?>(R.id.cardSearchMessages)
+        when {
+            searchCard?.visibility == View.VISIBLE -> toggleMessageSearch() // إيقاف وضع البحث أولاً
+            layoutChatRoom.visibility == View.VISIBLE -> closeChatRoom()
+            showingArchived -> toggleArchiveView() // الخروج من وضع الأرشيف أولاً
+            else -> super.onBackPressed()
+        }
     }
 
     private fun loadMessages(scrollToBottom: Boolean = true) {
@@ -409,7 +768,35 @@ class MessagesActivity : BaseActivity() {
     }
 }
 
-class ChatListAdapter(private var chats: List<ChatEntity>, private val onChatClick: (ChatEntity) -> Unit) : RecyclerView.Adapter<ChatListAdapter.ChatVH>() {
+sealed class ChatRow {
+    data class Header(val archivedCount: Int, val archiveMode: Boolean) : ChatRow()
+    data class AddToList(val listName: String) : ChatRow()
+    data class Item(val chat: ChatEntity) : ChatRow()
+}
+
+class ChatListAdapter(
+    private val ctx: Context,
+    private val onChatClick: (ChatEntity) -> Unit,
+    private val onHeaderClick: () -> Unit,
+    private val onAddToList: (String) -> Unit,
+    private val onAction: (ChatEntity, String) -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    private var rows: List<ChatRow> = emptyList()
+
+    fun submit(newRows: List<ChatRow>) { rows = newRows; notifyDataSetChanged() }
+    fun isItem(pos: Int) = pos in rows.indices && rows[pos] is ChatRow.Item
+    fun chatAt(pos: Int): ChatEntity? = (rows.getOrNull(pos) as? ChatRow.Item)?.chat
+
+    override fun getItemViewType(position: Int) = when (rows[position]) {
+        is ChatRow.Item -> 1
+        else -> 0 // Header + AddToList يستخدمان نفس تخطيط الرأس
+    }
+    override fun getItemCount() = rows.size
+
+    class HeaderVH(v: View) : RecyclerView.ViewHolder(v) {
+        val tv: TextView = v.findViewById(R.id.tvArchiveHeader)
+    }
     class ChatVH(v: View) : RecyclerView.ViewHolder(v) {
         val tvIcon: TextView = v.findViewById(R.id.tvChatIcon)
         val cvIcon: CardView = v.findViewById(R.id.cvIcon)
@@ -418,10 +805,40 @@ class ChatListAdapter(private var chats: List<ChatEntity>, private val onChatCli
         val tvLastMsgTime: TextView = v.findViewById(R.id.tvLastMsgTime)
         val tvUnreadBadge: TextView = v.findViewById(R.id.tvUnreadBadge)
     }
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatVH = ChatVH(LayoutInflater.from(parent.context).inflate(R.layout.item_chat_list, parent, false))
-    override fun onBindViewHolder(holder: ChatVH, position: Int) {
-        val chat = chats[position]
-        holder.tvName.text = chat.name
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inf = LayoutInflater.from(parent.context)
+        return if (viewType == 0) HeaderVH(inf.inflate(R.layout.item_chat_header, parent, false))
+        else ChatVH(inf.inflate(R.layout.item_chat_list, parent, false))
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val row = rows[position]) {
+            is ChatRow.Header -> {
+                val h = holder as HeaderVH
+                h.tv.text = if (row.archiveMode) "↩  رجوع للمحادثات"
+                            else "🗄  الأرشيف (${row.archivedCount})"
+                h.itemView.setOnClickListener { onHeaderClick() }
+            }
+            is ChatRow.AddToList -> {
+                val h = holder as HeaderVH
+                h.tv.text = "➕  إضافة محادثات إلى \"${row.listName}\""
+                h.itemView.setOnClickListener { onAddToList(row.listName) }
+            }
+            is ChatRow.Item -> bindChat(holder as ChatVH, row.chat)
+        }
+    }
+
+    private fun bindChat(holder: ChatVH, chat: ChatEntity) {
+        val key = ChatPrefs.keyOf(chat)
+        val pinned = ChatPrefs.isPinned(ctx, key)
+        val starred = ChatPrefs.isStarred(ctx, key)
+        val archived = ChatPrefs.isArchived(ctx, key)
+        val unread = ChatPrefs.effectiveUnread(ctx, chat)
+
+        val pin = if (pinned) "📌 " else ""
+        val star = if (starred) "  ⭐" else ""
+        holder.tvName.text = "$pin${chat.name ?: ""}$star"
         holder.tvLastMessage.text = chat.lastMessage ?: "انقر للبدء..."
 
         val timeFormat = chat.lastMsgTime?.let {
@@ -432,21 +849,49 @@ class ChatListAdapter(private var chats: List<ChatEntity>, private val onChatCli
         } ?: ""
         holder.tvLastMsgTime.text = timeFormat
 
-        if (chat.unreadCount > 0) {
+        if (unread > 0) {
             holder.tvUnreadBadge.visibility = View.VISIBLE
-            holder.tvUnreadBadge.text = chat.unreadCount.toString()
-            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.error_red))
+            holder.tvUnreadBadge.text = unread.toString()
+            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
+            holder.tvName.setTypeface(null, Typeface.BOLD)
         } else {
             holder.tvUnreadBadge.visibility = View.GONE
-            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.ink_muted))
+            holder.tvLastMsgTime.setTextColor(ContextCompat.getColor(ctx, R.color.ink_muted))
+            holder.tvName.setTypeface(null, Typeface.BOLD)
         }
 
         holder.cvIcon.setCardBackgroundColor(if (chat.type == "group") Color.parseColor("#2F358F") else Color.parseColor("#F7A61B"))
         holder.tvIcon.text = if (chat.type == "group") "📚" else (chat.name?.firstOrNull()?.toString()?.uppercase() ?: "👤")
 
         holder.itemView.setOnClickListener { onChatClick(chat) }
+        holder.itemView.setOnLongClickListener {
+            showMenu(holder.itemView, chat, pinned, starred, archived, unread)
+            true
+        }
     }
-    override fun getItemCount() = chats.size
+
+    private fun showMenu(anchor: View, chat: ChatEntity, pinned: Boolean, starred: Boolean, archived: Boolean, unread: Int) {
+        val pm = PopupMenu(anchor.context, anchor)
+        val m = pm.menu
+        m.add(0, 1, 0, if (archived) "إلغاء الأرشفة" else "أرشفة")
+        m.add(0, 2, 1, if (starred) "إزالة النجمة" else "تمييز بنجمة")
+        m.add(0, 3, 2, if (pinned) "إلغاء التثبيت" else "تثبيت المحادثة")
+        if (unread > 0) m.add(0, 4, 3, "تعليم كمقروءة")
+        else m.add(0, 5, 3, "تعليم كغير مقروءة")
+        m.add(0, 6, 4, "إضافة إلى قائمة")
+        pm.setOnMenuItemClickListener {
+            when (it.itemId) {
+                1 -> onAction(chat, if (archived) "unarchive" else "archive")
+                2 -> onAction(chat, "star")
+                3 -> onAction(chat, "pin")
+                4 -> onAction(chat, "read")
+                5 -> onAction(chat, "unread")
+                6 -> onAction(chat, "lists")
+            }
+            true
+        }
+        pm.show()
+    }
 }
 
 class AdvancedChatAdapter(
@@ -459,6 +904,7 @@ class AdvancedChatAdapter(
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val text: TextView = v.findViewById(R.id.tvMessageText)
         val time: TextView = v.findViewById(R.id.tvTime)
+        val dateSep: TextView? = v.findViewById(R.id.tvDateSeparator)
         val senderNameRole: TextView? = v.findViewById(R.id.tvSenderNameRole)
         val audioPlayer: View? = v.findViewById(R.id.layoutAudioPlayer)
         val btnPlayPause: ImageButton? = v.findViewById(R.id.btnPlayPause)
@@ -476,6 +922,33 @@ class AdvancedChatAdapter(
     fun updateList(newList: List<ChatMessageData>) {
         this.list = newList
         notifyDataSetChanged()
+    }
+
+    /** مفتاح اليوم (yyyy-MM-dd) من طابع الوقت. */
+    private fun dayKey(createdAt: String?): String? {
+        if (createdAt.isNullOrBlank()) return null
+        return try {
+            val d = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).parse(createdAt)
+            SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(d!!)
+        } catch (e: Exception) {
+            if (createdAt.length >= 10) createdAt.substring(0, 10) else null
+        }
+    }
+
+    /** تسمية ودّية لليوم: اليوم / أمس / dd MMMM yyyy. */
+    private fun dayLabel(dayKey: String): String {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(java.util.Date())
+        val yesterday = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(
+            java.util.Date(System.currentTimeMillis() - 86_400_000L)
+        )
+        return when (dayKey) {
+            today -> "اليوم"
+            yesterday -> "أمس"
+            else -> try {
+                val d = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).parse(dayKey)
+                SimpleDateFormat("dd MMMM yyyy", Locale("ar")).format(d!!)
+            } catch (e: Exception) { dayKey }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
@@ -498,6 +971,16 @@ class AdvancedChatAdapter(
             } catch (e: Exception) { it }
         } ?: ""
         holder.time.text = timeFormat
+
+        // فاصل التاريخ: يظهر عند أول رسالة أو عند تغيّر اليوم عن الرسالة السابقة.
+        val thisDay = dayKey(msg.createdAt)
+        val prevDay = if (position > 0) dayKey(list[position - 1].createdAt) else null
+        holder.dateSep?.let { sep ->
+            if (thisDay != null && thisDay != prevDay) {
+                sep.visibility = View.VISIBLE
+                sep.text = dayLabel(thisDay)
+            } else sep.visibility = View.GONE
+        }
 
         if (!isMine && isGroup) {
             holder.senderNameRole?.visibility = View.VISIBLE

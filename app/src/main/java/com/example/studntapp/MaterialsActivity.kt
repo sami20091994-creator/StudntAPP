@@ -75,6 +75,7 @@ class MaterialsActivity : BaseActivity() {
         currentSubjectId = 0
         supportActionBar?.title = "قائمة المواد الدراسية"
         fabUpload.visibility = View.GONE
+        findViewById<View?>(R.id.fabMessages)?.translationY = 0f // إعادة زر الرسائل لمكانه
 
         val call = if (role == "teacher") {
             RetrofitClient.instance.getSubjects(userId = userId, role = role)
@@ -107,11 +108,12 @@ class MaterialsActivity : BaseActivity() {
 
     private fun loadMaterialsForSubject(subjectId: Int, subjectName: String) {
         currentSubjectId = subjectId
-        supportActionBar?.title = "الملفات التعليمية المرفوعة"
+        supportActionBar?.title = "المواد الدراسية المرفوعة"
 
-        // إظهار زر الرفع فقط للأستاذ
+        // إظهار زر الرفع فقط للأستاذ، ورفع زر الرسائل ليتوضّع فوقه.
         if (role == "teacher") {
             fabUpload.visibility = View.VISIBLE
+            findViewById<View?>(R.id.fabMessages)?.translationY = -resources.displayMetrics.density * 70
         } else {
             fabUpload.visibility = View.GONE
         }

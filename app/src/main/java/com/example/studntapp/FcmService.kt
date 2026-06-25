@@ -32,14 +32,19 @@ class FcmService : FirebaseMessagingService() {
         // ندعم حمولة data (مفضّلة) أو notification.
         val data = message.data
         val type = data["type"] ?: "notification"
-        val title = data["title"] ?: message.notification?.title ?: "إشعار جديد"
+        val senderName = data["sender_name"] ?: data["chat_name"]
+        // لإشعار رسالة: العنوان = اسم المحادثة/المرسل ليظهر بشريط الإشعارات.
+        val title = if (type == "message" && !senderName.isNullOrBlank()) senderName
+                    else data["title"] ?: message.notification?.title ?: "إشعار جديد"
         val body = data["body"] ?: data["message"] ?: message.notification?.body ?: ""
 
-        val target: Class<*> = if (type == "message") MessagesActivity::class.java else NotificationsActivity::class.java
-        showNotification(title, body, target, data)
+        // رسالة محادثة إذا كان النوع "message" أو وُجد sender_id → فتح المحادثة مباشرةً.
+        val isMsg = type == "message" || !data["sender_id"].isNullOrBlank()
+        val target: Class<*> = if (isMsg) MessagesActivity::class.java else NotificationsActivity::class.java
+        showNotification(title, body, target, data, isMsg)
     }
 
-    private fun showNotification(title: String, body: String, target: Class<*>, data: Map<String, String> = emptyMap()) {
+    private fun showNotification(title: String, body: String, target: Class<*>, data: Map<String, String> = emptyMap(), isMsg: Boolean = false) {
         val channelId = "resalaty_alerts"
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -51,10 +56,10 @@ class FcmService : FirebaseMessagingService() {
 
         val intent = Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         // إن كان إشعار رسالة، نمرّر بيانات المحادثة ليُفتح الحوار مباشرةً عند الضغط.
-        if (data["type"] == "message") {
+        if (isMsg) {
             data["sender_id"]?.toIntOrNull()?.let { intent.putExtra("OPEN_CHAT_ID", it) }
             intent.putExtra("OPEN_CHAT_TYPE", data["chat_type"] ?: "user")
-            intent.putExtra("OPEN_CHAT_NAME", data["sender_name"])
+            intent.putExtra("OPEN_CHAT_NAME", data["sender_name"] ?: data["chat_name"])
         }
         val pi = PendingIntent.getActivity(
             this, 0, intent,

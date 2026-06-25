@@ -86,7 +86,7 @@
         <!-- ===== الثيمات ===== -->
         <TextView style="@style/App.SectionTitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="22dp" android:text="🎨 المظهر والثيمات" />
+            android:layout_marginTop="22dp" android:text="المظهر والثيمات" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -125,35 +125,13 @@
                     android:text=""
                     android:textColor="@color/ink_muted"
                     android:textSize="13sp" />
-
-                <View android:layout_width="match_parent" android:layout_height="1dp"
-                    android:layout_marginVertical="16dp" android:background="@color/line" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="الوضع الليلي"
-                        android:textColor="@color/ink"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switchNight"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
         <!-- ===== التواصل ===== -->
         <TextView style="@style/App.SectionTitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="22dp" android:text="📞 التواصل وحساباتنا" />
+            android:layout_marginTop="22dp" android:text="التواصل وحساباتنا" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -174,7 +152,7 @@
         <!-- ===== من نحن ===== -->
         <TextView style="@style/App.SectionTitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="22dp" android:text="ℹ️ من نحن" />
+            android:layout_marginTop="22dp" android:text="من نحن" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -197,7 +175,7 @@
         <!-- ===== فريق التطوير ===== -->
         <TextView style="@style/App.SectionTitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="22dp" android:text="👨‍💻 فريق التطوير" />
+            android:layout_marginTop="22dp" android:text="فريق التطوير" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

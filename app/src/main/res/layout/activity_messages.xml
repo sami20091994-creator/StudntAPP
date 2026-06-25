@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light"
+    android:background="@color/canvas"
     android:layoutDirection="rtl">
 
-    <!-- Chat List View -->
+    <!-- ===== قائمة المحادثات ===== -->
     <LinearLayout
         android:id="@+id/layoutChatList"
         android:layout_width="match_parent"
@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:visibility="visible">
 
-        <!-- شريط البحث فقط (العنوان وزر القائمة من شريط الهيكل الموحّد كباقي الشاشات) -->
+        <!-- شريط البحث (العنوان وزر القائمة من شريط الهيكل الموحّد) -->
         <FrameLayout
             android:id="@+id/chatListHeader"
             android:layout_width="match_parent"
@@ -34,7 +34,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
-                    android:drawableStart="@android:drawable/ic_menu_search"
+                    android:drawableStart="@drawable/ic_search"
                     android:drawablePadding="12dp"
                     android:hint="ابحث عن محادثة..."
                     android:paddingHorizontal="16dp"
@@ -48,32 +48,50 @@
             </androidx.cardview.widget.CardView>
         </FrameLayout>
 
-        <!-- Conversations List -->
+        <!-- شريط فلاتر القوائم: الكل / غير مقروءة / المجموعات / قوائم مخصصة -->
+        <HorizontalScrollView
+            android:id="@+id/scrollChatFilters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/canvas"
+            android:paddingHorizontal="12dp"
+            android:paddingBottom="8dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/llChatFilters"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvChatList"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/surface_white"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/canvas"
             android:clipToPadding="false"
             android:paddingBottom="80dp" />
     </LinearLayout>
 
-    <!-- Chat Room View -->
+    <!-- ===== غرفة المحادثة ===== -->
     <LinearLayout
         android:id="@+id/layoutChatRoom"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:visibility="gone"
-        android:background="@color/background_light">
+        android:background="@color/canvas">
 
-        <!-- Chat Header -->
-        <com.google.android.material.appbar.AppBarLayout
+        <!-- رأس المحادثة بلون الثيم (LinearLayout لتفادي ازدواج حشوة شريط الحالة) -->
+        <LinearLayout
             android:id="@+id/chatRoomHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/surface_white"
-            app:elevation="4dp">
+            android:orientation="vertical"
+            android:background="?attr/colorPrimary"
+            android:elevation="4dp">
 
             <androidx.appcompat.widget.Toolbar
                 android:layout_width="match_parent"
@@ -84,62 +102,88 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="6dp">
 
-                    <!-- Back Button -->
                     <ImageButton
                         android:id="@+id/btnBackToList"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_revert"
-                        app:tint="?attr/colorPrimary" />
+                        android:contentDescription="رجوع"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/white" />
 
-                    <!-- User Info -->
+                    <!-- أيقونة جهة الاتصال -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="4dp"
+                        app:cardBackgroundColor="@color/surface"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp">
+
+                        <TextView
+                            android:id="@+id/tvRoomAvatar"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+                    </androidx.cardview.widget.CardView>
+
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginStart="8dp">
+                        android:layout_marginStart="10dp">
 
                         <TextView
                             android:id="@+id/tvRoomName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/text_dark"
+                            android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:maxLines="1"
                             android:ellipsize="end" />
 
                         <TextView
+                            android:id="@+id/tvRoomStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="متصل الآن"
-                            android:textColor="@color/success_green"
+                            android:text="اضغط للمحادثة"
+                            android:alpha="0.85"
+                            android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Search Messages Button -->
                     <ImageButton
                         android:id="@+id/btnToggleSearchMessages"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="@color/text_grey" />
+                        android:contentDescription="بحث"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/white" />
                 </LinearLayout>
             </androidx.appcompat.widget.Toolbar>
 
-            <!-- Search Messages Field (Hidden by Default) -->
+            <!-- حقل البحث داخل المحادثة (مخفي افتراضياً) -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/cardSearchMessages"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_marginHorizontal="12dp"
                 android:layout_marginBottom="8dp"
-                app:cardCornerRadius="10dp"
-                app:cardElevation="0dp">
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/surface">
 
                 <EditText
                     android:id="@+id/etSearchMessages"
@@ -147,16 +191,17 @@
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:hint="بحث في الرسائل..."
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="14dp"
                     android:textSize="14sp"
-                    android:visibility="gone"
                     android:maxLines="1"
                     android:inputType="text"
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/ink_faint"
                     android:gravity="center_vertical" />
             </androidx.cardview.widget.CardView>
-        </com.google.android.material.appbar.AppBarLayout>
+        </LinearLayout>
 
-        <!-- Messages List -->
+        <!-- قائمة الرسائل -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvMessages"
             android:layout_width="match_parent"
@@ -165,35 +210,34 @@
             android:clipToPadding="false"
             android:padding="12dp" />
 
-        <!-- Message Input Area -->
+        <!-- شريط الإدخال -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/surface_white"
-            android:gravity="center_vertical"
+            android:background="@color/surface"
+            android:gravity="bottom"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            app:elevation="8dp">
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="8dp">
 
-            <!-- Attach File Button -->
             <ImageButton
                 android:id="@+id/btnAttachFile"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_input_add"
-                app:tint="@color/text_grey" />
+                android:contentDescription="إرفاق"
+                android:padding="9dp"
+                android:src="@drawable/ic_attach"
+                app:tint="@color/ink_muted" />
 
-            <!-- Message Input Field -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginHorizontal="8dp"
-                app:cardCornerRadius="20dp"
+                app:cardCornerRadius="22dp"
                 app:cardElevation="0dp"
-                android:background="@color/background_light">
+                app:cardBackgroundColor="@color/surface_alt">
 
                 <EditText
                     android:id="@+id/etMessage"
@@ -201,52 +245,52 @@
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
                     android:hint="اكتب رسالتك..."
-                    android:maxLines="4"
+                    android:maxLines="5"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
+                    android:paddingVertical="11dp"
                     android:textSize="15sp"
-                    android:textColor="@color/text_dark" />
+                    android:textColor="@color/ink"
+                    android:textColorHint="@color/ink_faint" />
             </androidx.cardview.widget.CardView>
 
-            <!-- Action Container (Record Audio / Send Message) -->
+            <ImageButton
+                android:id="@+id/btnClearText"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="مسح"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:visibility="gone"
+                app:tint="@color/ink_faint" />
+
             <FrameLayout
                 android:id="@+id/btnActionContainer"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
                 android:background="@drawable/bg_send_button">
 
-                <!-- Record Audio Button -->
+                <!-- زر التسجيل (مخفي بناءً على طلب المستخدم) -->
                 <Button
                     android:id="@+id/btnRecordAudio"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
-                    android:text="🎤"
-                    android:textSize="18sp" />
+                    android:visibility="gone"
+                    android:text="" />
 
-                <!-- Send Message Button -->
                 <ImageButton
                     android:id="@+id/btnSendMessage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
-                    android:padding="10dp"
-                    android:src="@android:drawable/ic_menu_send"
-                    android:visibility="gone"
+                    android:contentDescription="إرسال"
+                    android:padding="11dp"
+                    android:scaleX="-1"
+                    android:src="@drawable/ic_send"
                     app:tint="@color/white" />
             </FrameLayout>
-
-            <!-- Clear Text Button -->
-            <ImageButton
-                android:id="@+id/btnClearText"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:visibility="gone"
-                app:tint="@color/text_light" />
         </LinearLayout>
     </LinearLayout>
 

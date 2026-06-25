@@ -2,42 +2,63 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="end"
-    android:paddingStart="72dp"
-    android:paddingEnd="8dp"
-    android:paddingVertical="4dp">
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/layoutBubble"
+    <!-- فاصل التاريخ (يظهر عند تغيّر اليوم) -->
+    <TextView
+        android:id="@+id/tvDateSeparator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
-        android:background="@drawable/bg_bubble_sent">
+        android:layout_gravity="center_horizontal"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/bg_date_chip"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="5dp"
+        android:textColor="@color/ink_muted"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tvMessageText"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:paddingStart="72dp"
+        android:paddingEnd="8dp"
+        android:paddingVertical="3dp">
+
+        <LinearLayout
+            android:id="@+id/layoutBubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="15sp"
-            android:lineSpacingExtra="2dp" />
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:background="@drawable/bg_bubble_sent">
 
-        <include
-            android:id="@+id/layoutAudioPlayer"
-            layout="@layout/layout_audio_player"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/tvMessageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:lineSpacingExtra="2dp" />
 
-        <TextView
-            android:id="@+id/tvTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="3dp"
-            android:textColor="#CCFFFFFF"
-            android:textSize="11sp" />
+            <include
+                android:id="@+id/layoutAudioPlayer"
+                layout="@layout/layout_audio_player"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="3dp"
+                android:textColor="#CCFFFFFF"
+                android:textSize="11sp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -25,6 +25,28 @@
     <!-- الثيم الافتراضي (يُستبدل برمجياً حسب الباقة) -->
     <style name="Theme.StudntAPP" parent="Theme.Resalaty.Indigo" />
 
+    <!-- لوحة التنقّل بملء الشاشة تنزلق من اليمين (مثل غوغل) -->
+    <style name="Theme.Resalaty.NavPanel" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@style/NavPanelAnim</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+    </style>
+    <style name="NavPanelAnim" parent="">
+        <item name="android:windowEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_right</item>
+    </style>
+
+    <!-- شاشة البداية (Splash) -->
+    <style name="Theme.Resalaty.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/indigo_dark</item>
+        <item name="android:statusBarColor">@color/indigo_dark</item>
+        <item name="android:navigationBarColor">@color/indigo_dark</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+    </style>
+
     <!-- ===== الباقات اللونية الخمس ===== -->
     <style name="Theme.Resalaty.Indigo" parent="Base.Theme.StudntAPP">
         <item name="colorPrimary">@color/p_indigo</item>
@@ -54,6 +76,15 @@
         <item name="colorPrimary">@color/p_crimson</item>
         <item name="colorPrimaryVariant">@color/p_crimson_dark</item>
         <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <!-- ===== الثيم الداكن الأنيق =====
+         لون تمييز ناعم فوق الأسطح الداكنة. الأسطح/النصوص الداكنة تأتي
+         تلقائياً من قيم values-night عند تفعيل localNightMode (يرتبط بالباقة). -->
+    <style name="Theme.Resalaty.Night" parent="Base.Theme.StudntAPP">
+        <item name="colorPrimary">@color/p_night_accent</item>
+        <item name="colorPrimaryVariant">@color/p_night_accent_dark</item>
+        <item name="colorOnPrimary">@color/night_ink_strong</item>
     </style>
 
     <!-- أنيميشن انتقال النوافذ على مستوى كامل التطبيق -->
