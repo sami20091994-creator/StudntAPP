@@ -106,10 +106,10 @@ object ThemeManager {
      * إعادة بناء الشاشة مع انكشاف دائري للثيم الجديد من نقطة الزر (مثل تيليجرام).
      * نلتقط صورة للوضع الحالي قبل إعادة البناء، ثم نكشف الجديد بدائرة متوسّعة.
      */
-    fun circularRecreate(activity: android.app.Activity, source: View?) {
+    /** يلتقط لقطة الشاشة الحالية ومركز الانكشاف، تمهيداً لإعادة البناء. يُرجِع true إن نجح. */
+    private fun captureForReveal(activity: android.app.Activity, source: View?): Boolean {
         val decor = activity.window.decorView
-        if (decor.width <= 0 || decor.height <= 0) { smoothRecreate(activity); return }
-        // مركز الانكشاف = مركز الزر المضغوط، أو وسط الشاشة.
+        if (decor.width <= 0 || decor.height <= 0) return false
         if (source != null) {
             val loc = IntArray(2); source.getLocationInWindow(loc)
             revealCx = loc[0] + source.width / 2
@@ -122,13 +122,23 @@ object ThemeManager {
             decor.draw(android.graphics.Canvas(b)); b
         } catch (e: Exception) { null }
         revealAt = System.currentTimeMillis()
-        // تغيير الوضع الداكن = إعادة بناء واحدة عبر المفوّض العام (بلا ازدواج/Drop).
-        // تغيير الباقة فقط = إعادة بناء يدوية واحدة.
+        return true
+    }
+
+    /** تبديل **الباقة اللونية**: إعادة بناء يدوية واحدة دائماً + انكشاف دائري. */
+    fun circularRecreate(activity: android.app.Activity, source: View?) {
+        if (!captureForReveal(activity, source)) { smoothRecreate(activity); return }
+        activity.recreate()
+    }
+
+    /** تبديل **الوضع الداكن**: إعادة بناء واحدة عبر المفوّض العام (بلا ازدواج/Drop) + انكشاف. */
+    fun circularRecreateNight(activity: android.app.Activity, source: View?) {
+        if (!captureForReveal(activity, source)) { smoothRecreate(activity); return }
         val want = if (isNight(activity)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
         if (AppCompatDelegate.getDefaultNightMode() != want) {
-            AppCompatDelegate.setDefaultNightMode(want)
+            AppCompatDelegate.setDefaultNightMode(want) // إعادة بناء واحدة يديرها AppCompat
         } else {
-            activity.recreate()
+            activity.recreate() // احتياط: لو كان مضبوطاً مسبقاً
         }
     }
 

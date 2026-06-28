@@ -106,7 +106,7 @@ class SettingsActivity : BaseActivity() {
         refreshToggleIcon()
         toggle.setOnClickListener {
             ThemeManager.toggleNight(this)
-            ThemeManager.circularRecreate(this, toggle)
+            ThemeManager.circularRecreateNight(this, toggle)
         }
         container.addView(toggle)
     }
