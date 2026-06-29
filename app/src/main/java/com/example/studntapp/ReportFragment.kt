@@ -54,6 +54,7 @@ class ReportFragment : Fragment() {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             isFillViewport = true
             setBackgroundColor(col(R.color.canvas))
+            layoutDirection = View.LAYOUT_DIRECTION_RTL // فرض اتجاه RTL لكامل الصفحة
         }
         mainLayout = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
@@ -61,21 +62,38 @@ class ReportFragment : Fragment() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL // ضمان تدفّق العناصر من اليمين لليسار
         }
 
-        val filterLabel = TextView(ctx).apply {
+        mainLayout.addView(buildProfileHeader(ctx))
+
+        // بطاقة الفلتر: عنوان + منسدلة المواد (تصميم مريح بأبعاد مناسبة).
+        val dp = ctx.resources.displayMetrics.density
+        fun px(v: Int) = (v * dp).toInt()
+        val filterCard = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(px(16), px(16), px(16), px(16))
+            background = GradientDrawable().apply {
+                setColor(col(R.color.surface)); cornerRadius = px(20).toFloat(); setStroke(2, col(R.color.line))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = px(4); bottomMargin = px(6) }
+        }
+        filterCard.addView(TextView(ctx).apply {
             text = "تصفية حسب المادة"
-            textSize = 16f
+            textSize = 15f
             setTextColor(primaryColor())
             setTypeface(null, Typeface.BOLD)
-            setPadding(4, 0, 4, 14)
-            gravity = Gravity.END
-        }
+            gravity = Gravity.START
+        })
         spinnerSubjects = Spinner(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)
-            background = cardBg()
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(52)).apply { topMargin = px(10) }
+            background = GradientDrawable().apply {
+                setColor(col(R.color.surface_alt)); cornerRadius = px(14).toFloat(); setStroke(1, col(R.color.line))
+            }
+            setPadding(px(14), 0, px(14), 0)
         }
-        mainLayout.addView(buildProfileHeader(ctx))
-        mainLayout.addView(filterLabel)
-        mainLayout.addView(spinnerSubjects)
+        filterCard.addView(spinnerSubjects)
+        mainLayout.addView(filterCard)
 
         val statsLayout = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val avgBox = statCard(ctx, primaryColor()).apply {
@@ -150,8 +168,8 @@ class ReportFragment : Fragment() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL // العناصر من اليمين لليسار
             // تدرّج من ألوان الثيم الحالي بدل لون ثابت.
-            background = android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
                 intArrayOf(themeAttr(com.google.android.material.R.attr.colorPrimary),
                            themeAttr(com.google.android.material.R.attr.colorPrimaryVariant))
             ).apply { cornerRadius = px(22).toFloat() }
@@ -164,8 +182,8 @@ class ReportFragment : Fragment() {
         val avatar = TextView(ctx).apply {
             text = initial; setTextColor(android.graphics.Color.WHITE); textSize = 26f
             setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
                 setColor(android.graphics.Color.parseColor("#33FFFFFF"))
                 setStroke(px(2), android.graphics.Color.parseColor("#66FFFFFF"))
             }

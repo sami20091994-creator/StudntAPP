@@ -204,21 +204,28 @@ class MainActivity : AppCompatActivity() {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { btnLogin.performClick(); true } else false
         }
 
-        // عند الضغط على أي حقل: تمريره لمنتصف الشاشة فوق الكيبورد لحصر التركيز.
+        // تمركز الحقل المختار بوضوح فوق الكيبورد وسط المساحة المرئية.
         val scroll = findViewById<android.widget.ScrollView>(R.id.scrollLogin)
-        val centerOnFocus = { field: View ->
-            scroll.postDelayed({
-                val r = android.graphics.Rect()
-                field.getDrawingRect(r)
-                scroll.offsetDescendantRectToMyCoords(field, r)
-                val target = r.top + field.height / 2 - scroll.height / 2
-                scroll.smoothScrollTo(0, target.coerceAtLeast(0))
-            }, 300)
+        fun centerField(field: View) {
+            val r = android.graphics.Rect()
+            field.getDrawingRect(r)
+            scroll.offsetDescendantRectToMyCoords(field, r)
+            val target = r.top + field.height / 2 - scroll.height / 2
+            scroll.smoothScrollTo(0, target.coerceAtLeast(0))
         }
+        val centerOnFocus = { field: View -> scroll.postDelayed({ centerField(field) }, 280) }
         etPhone.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
         etPassword.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
         etPhone.setOnClickListener { centerOnFocus(etPhone) }
         etPassword.setOnClickListener { centerOnFocus(etPassword) }
+        // إعادة التمركز فور تقلّص الـ ScrollView (ظهور الكيبورد) على الحقل المركّز حالياً.
+        scroll.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            val shrunk = (bottom - top) < (oldBottom - oldTop)
+            if (shrunk) {
+                val f = currentFocus
+                if (f === etPhone || f === etPassword) scroll.post { centerField(f!!) }
+            }
+        }
 
         // نسيت كلمة المرور؟
         findViewById<TextView>(R.id.btnForgotPassword).setOnClickListener { showForgotPasswordDialog() }
