@@ -73,23 +73,20 @@ class ReportFragment : Fragment() {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)
             background = cardBg()
         }
+        mainLayout.addView(buildProfileHeader(ctx))
         mainLayout.addView(filterLabel)
         mainLayout.addView(spinnerSubjects)
 
-        val statsLayout = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30) }
-        val avgBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = 18 }
-            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = cardBg()
+        val statsLayout = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30); layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        val avgBox = statCard(ctx, primaryColor()).apply {
+            (layoutParams as LinearLayout.LayoutParams).marginEnd = 18
         }
         avgBox.addView(TextView(ctx).apply { text = "المعدل التراكمي"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
         tvAverage = TextView(ctx).apply { text = "0%"; textSize = 32f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
         avgBox.addView(tvAverage)
 
-        val quizBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = 18 }
-            gravity = Gravity.CENTER; setPadding(24, 36, 24, 36); background = cardBg()
+        val quizBox = statCard(ctx, col(R.color.success_green)).apply {
+            (layoutParams as LinearLayout.LayoutParams).marginStart = 18
         }
         quizBox.addView(TextView(ctx).apply { text = "إجمالي الاختبارات"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
         tvQuizzes = TextView(ctx).apply { text = "0"; textSize = 32f; setTextColor(col(R.color.success_green)); setTypeface(null, Typeface.BOLD) }
@@ -99,16 +96,121 @@ class ReportFragment : Fragment() {
         statsLayout.addView(quizBox)
         mainLayout.addView(statsLayout)
 
-        mainLayout.addView(createSectionTitle("المواد قيد الدراسة (النشطة)", primaryColor()))
         activeSubjectsContainer = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-        mainLayout.addView(activeSubjectsContainer)
+        mainLayout.addView(sectionCard(ctx, "المواد قيد الدراسة (النشطة)", primaryColor(), activeSubjectsContainer))
 
-        mainLayout.addView(createSectionTitle("سجل المواد المكتملة (خريج)", col(R.color.success_green)))
         completedSubjectsContainer = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-        mainLayout.addView(completedSubjectsContainer)
+        mainLayout.addView(sectionCard(ctx, "سجل المواد المكتملة (خريج)", col(R.color.success_green), completedSubjectsContainer))
 
         scrollView.addView(mainLayout)
         return scrollView
+    }
+
+    private var tvHeaderAvg: TextView? = null
+
+    private fun themeAttr(attr: Int): Int {
+        val tv = TypedValue()
+        requireContext().theme.resolveAttribute(attr, tv, true)
+        return tv.data
+    }
+
+    /** بطاقة قسم: عنوان ملوّن + حاوية المواد بداخلها. */
+    private fun sectionCard(ctx: Context, title: String, color: Int, container: LinearLayout): View {
+        val d = ctx.resources.displayMetrics.density
+        fun px(v: Int) = (v * d).toInt()
+        val card = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px(14), px(14), px(14), px(14))
+            background = GradientDrawable().apply {
+                setColor(col(R.color.surface)); cornerRadius = px(20).toFloat()
+                setStroke(2, col(R.color.line))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = px(8); bottomMargin = px(8) }
+        }
+        card.addView(TextView(ctx).apply {
+            text = title; textSize = 16f; setTextColor(color)
+            setTypeface(null, Typeface.BOLD); gravity = Gravity.END
+            setPadding(0, 0, px(4), px(10))
+        })
+        card.addView(container)
+        return card
+    }
+
+    /** رأس الطالب المتدرّج (هوية مستوحاة من تقرير الويب). */
+    private fun buildProfileHeader(ctx: Context): View {
+        val d = ctx.resources.displayMetrics.density
+        fun px(v: Int) = (v * d).toInt()
+        val name = ctx.getSharedPreferences("AppSession", Context.MODE_PRIVATE).getString("USER_NAME", "طالب")?.trim().orEmpty()
+        val initial = name.firstOrNull()?.toString()?.uppercase() ?: "ط"
+
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL // العناصر من اليمين لليسار
+            // تدرّج من ألوان الثيم الحالي بدل لون ثابت.
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(themeAttr(com.google.android.material.R.attr.colorPrimary),
+                           themeAttr(com.google.android.material.R.attr.colorPrimaryVariant))
+            ).apply { cornerRadius = px(22).toFloat() }
+            setPadding(px(20), px(22), px(20), px(22))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = px(16) }
+        }
+        // أفاتار (الحرف الأول)
+        val avatar = TextView(ctx).apply {
+            text = initial; setTextColor(android.graphics.Color.WHITE); textSize = 26f
+            setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(android.graphics.Color.parseColor("#33FFFFFF"))
+                setStroke(px(2), android.graphics.Color.parseColor("#66FFFFFF"))
+            }
+            layoutParams = LinearLayout.LayoutParams(px(60), px(60))
+        }
+        row.addView(avatar)
+        // الاسم + الوصف
+        val info = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = px(14) }
+        }
+        info.addView(TextView(ctx).apply {
+            text = name.ifEmpty { "طالب" }; setTextColor(android.graphics.Color.WHITE)
+            textSize = 18f; setTypeface(null, Typeface.BOLD)
+        })
+        info.addView(TextView(ctx).apply {
+            text = "التقرير الأكاديمي الشامل"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 13f
+        })
+        row.addView(info)
+        // مؤشّر المعدل
+        val hl = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+        tvHeaderAvg = TextView(ctx).apply {
+            text = "0%"; setTextColor(android.graphics.Color.WHITE); textSize = 24f; setTypeface(null, Typeface.BOLD)
+        }
+        hl.addView(tvHeaderAvg)
+        hl.addView(TextView(ctx).apply { text = "المعدل العام"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 11f })
+        row.addView(hl)
+        return row
+    }
+
+    /** بطاقة إحصاء بحدّ علوي ملوّن (نمط تقرير الويب). */
+    private fun statCard(ctx: Context, topColor: Int): LinearLayout {
+        val d = ctx.resources.displayMetrics.density
+        return LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(24, 36, 24, 36)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            background = android.graphics.drawable.LayerDrawable(arrayOf(
+                GradientDrawable().apply { setColor(topColor); cornerRadius = 36f },
+                GradientDrawable().apply {
+                    setColor(col(R.color.surface)); cornerRadius = 34f; setStroke(2, col(R.color.line))
+                }
+            )).apply { setLayerInset(1, 0, (4 * d).toInt(), 0, 0) }
+        }
     }
 
     private fun cardBg() = GradientDrawable().apply {
@@ -162,6 +264,7 @@ class ReportFragment : Fragment() {
                 if (response.isSuccessful) {
                     val data = response.body()?.data
                     tvAverage.text = "${data?.average ?: 0.0}%"
+                    tvHeaderAvg?.text = "${data?.average ?: 0.0}%"
                     tvQuizzes.text = "${data?.quizzesCount ?: 0}"
 
                     activeSubjectsContainer.removeAllViews()

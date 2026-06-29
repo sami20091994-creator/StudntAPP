@@ -272,6 +272,13 @@ class MessagesActivity : BaseActivity() {
         showingArchived = !showingArchived
         etSearchChats.setText("")
         refreshChatRows()
+        // أنميشن دخول/خروج من الأرشيف (انزلاق + تلاشٍ باتجاه مختلف لكل حالة).
+        val dir = if (showingArchived) 1f else -1f
+        val dx = rvChatList.width.toFloat().coerceAtLeast(220f) * 0.28f * dir
+        rvChatList.alpha = 0f
+        rvChatList.translationX = dx
+        rvChatList.animate().alpha(1f).translationX(0f).setDuration(260)
+            .setInterpolator(android.view.animation.DecelerateInterpolator()).start()
     }
 
     /** أرشفة مع انبثاق سفلي للتراجع لمدة 5 ثوانٍ. */
@@ -768,6 +775,12 @@ class MessagesActivity : BaseActivity() {
     }
 }
 
+private fun themePrimary(ctx: Context): Int {
+    val tv = android.util.TypedValue()
+    ctx.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
+    return tv.data
+}
+
 sealed class ChatRow {
     data class Header(val archivedCount: Int, val archiveMode: Boolean) : ChatRow()
     data class AddToList(val listName: String) : ChatRow()
@@ -816,13 +829,26 @@ class ChatListAdapter(
         when (val row = rows[position]) {
             is ChatRow.Header -> {
                 val h = holder as HeaderVH
-                h.tv.text = if (row.archiveMode) "↩  رجوع للمحادثات"
-                            else "🗄  الأرشيف (${row.archivedCount})"
+                val pc = themePrimary(h.tv.context)
+                if (row.archiveMode) {
+                    h.tv.text = "رجوع للمحادثات"
+                    h.tv.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(h.tv.context, R.color.ink_muted))
+                    h.tv.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_chevron_right, 0, 0, 0)
+                } else {
+                    h.tv.text = "الأرشيف (${row.archivedCount})"
+                    h.tv.backgroundTintList = android.content.res.ColorStateList.valueOf(pc)
+                    h.tv.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_chevron_left, 0, 0, 0)
+                }
+                h.tv.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
                 h.itemView.setOnClickListener { onHeaderClick() }
             }
             is ChatRow.AddToList -> {
                 val h = holder as HeaderVH
-                h.tv.text = "➕  إضافة محادثات إلى \"${row.listName}\""
+                h.tv.text = "إضافة محادثات إلى \"${row.listName}\""
+                h.tv.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#F7A61B"))
+                h.tv.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
                 h.itemView.setOnClickListener { onAddToList(row.listName) }
             }
             is ChatRow.Item -> bindChat(holder as ChatVH, row.chat)

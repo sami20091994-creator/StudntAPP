@@ -206,7 +206,7 @@ class CalendarActivity : BaseActivity() {
         ).enqueue(object : Callback<List<ScheduleData>> {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
                 eventDays.clear()
-                response.body()?.forEach { it.startDate?.let { d -> eventDays.add(d) } }
+                response.body()?.forEach { it.startDate?.let { d -> if (d.length >= 10) eventDays.add(d.substring(0, 10)) } }
                 buildDateStrip()
             }
             override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) { buildDateStrip() }

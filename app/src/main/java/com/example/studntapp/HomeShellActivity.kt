@@ -53,10 +53,17 @@ class HomeShellActivity : BaseActivity() {
             }
         })
 
-        val startPage = intent.getIntExtra("PAGE", 0).coerceIn(0, 3)
+        // استعادة الصفحة بعد إعادة البناء (مثلاً عند تغيير الثيم) كي لا يعود للرئيسية.
+        val saved = savedInstanceState?.getInt("CUR_PAGE", -1) ?: -1
+        val startPage = if (saved in 0..3) saved else intent.getIntExtra("PAGE", 0).coerceIn(0, 3)
         pager.setCurrentItem(startPage, false)
         supportActionBar?.title = titles[startPage]
         pager.post { updateTabScroll(startPage.toFloat()) }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::pager.isInitialized) outState.putInt("CUR_PAGE", pager.currentItem)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -88,63 +89,24 @@ class OnlineLecturesAdapter(
 ) : RecyclerView.Adapter<OnlineLecturesAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
-        val title: TextView = v.findViewById(android.R.id.text1)
-        val subtitle: TextView = v.findViewById(android.R.id.text2)
-        val divider: View = v.findViewById(android.R.id.background) // استخدام أي id وهمي كمرجع
+        val title: TextView = v.findViewById(R.id.tvLectureTitle)
+        val status: TextView = v.findViewById(R.id.tvLectureStatus)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val layout = LinearLayout(parent.context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setPadding(40, 40, 40, 40)
-            setBackgroundColor(ContextCompat.getColor(parent.context, R.color.surface))
-        }
-
-        val tvTitle = TextView(parent.context).apply {
-            id = android.R.id.text1
-            textSize = 17f
-            setTextColor(ContextCompat.getColor(parent.context, R.color.ink))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_nav_lectures, 0, 0, 0)
-            compoundDrawablePadding = 24
-            val tv = android.util.TypedValue()
-            parent.context.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true)
-            compoundDrawableTintList = android.content.res.ColorStateList.valueOf(tv.data)
-        }
-
-        val tvSub = TextView(parent.context).apply {
-            id = android.R.id.text2
-            textSize = 13f
-            setPadding(0, 10, 0, 0)
-        }
-
-        val divider = View(parent.context).apply {
-            id = android.R.id.background
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2).apply { topMargin = 30 }
-        }
-
-        layout.addView(tvTitle)
-        layout.addView(tvSub)
-        layout.addView(divider)
-
-        return VH(layout)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+        VH(LayoutInflater.from(parent.context).inflate(R.layout.item_lecture_card, parent, false))
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
+        val ctx = holder.itemView.context
         holder.title.text = item.subjectName
 
-        // التحقق من حالة البث
-        val isLive = item.isLive ?: 0
-        if (isLive == 1) {
-            holder.subtitle.text = "🔴 بث مباشر الآن - اضغط للدخول"
-            holder.subtitle.setTextColor(Color.parseColor("#e84393"))
-            holder.divider.setBackgroundColor(Color.parseColor("#fd79a8"))
+        if ((item.isLive ?: 0) == 1) {
+            holder.status.text = "● بث مباشر الآن"
+            holder.status.setTextColor(Color.parseColor("#E84393"))
         } else {
-            holder.subtitle.text = "⚪ لا يوجد بث حالياً - الدخول للمساحة والسبورة"
-            holder.subtitle.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.ink_muted))
-            holder.divider.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.line))
+            holder.status.text = "الدخول للمساحة والسبورة"
+            holder.status.setTextColor(ContextCompat.getColor(ctx, R.color.ink_muted))
         }
 
         holder.itemView.setOnClickListener { onItemClick(item) }

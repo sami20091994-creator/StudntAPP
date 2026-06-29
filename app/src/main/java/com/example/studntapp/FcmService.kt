@@ -38,8 +38,8 @@ class FcmService : FirebaseMessagingService() {
                     else data["title"] ?: message.notification?.title ?: "إشعار جديد"
         val body = data["body"] ?: data["message"] ?: message.notification?.body ?: ""
 
-        // رسالة محادثة إذا كان النوع "message" أو وُجد sender_id → فتح المحادثة مباشرةً.
-        val isMsg = type == "message" || !data["sender_id"].isNullOrBlank()
+        // رسالة محادثة إذا كان النوع "message" أو وُجد sender_id أو العنوان يحوي "رسالة".
+        val isMsg = type == "message" || !data["sender_id"].isNullOrBlank() || title.contains("رسالة")
         val target: Class<*> = if (isMsg) MessagesActivity::class.java else NotificationsActivity::class.java
         showNotification(title, body, target, data, isMsg)
     }

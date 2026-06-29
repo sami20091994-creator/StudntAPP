@@ -245,8 +245,8 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        // اعتبره رسالة إذا كان النوع "message" أو وُجد اسم مرسل/محادثة (حتى لو النوع مفقود من API).
-        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank()
+        // الـAPI الجديد بلا type/sender — نستدلّ على الرسالة من العنوان أيضاً.
+        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank() || (item.title?.contains("رسالة") == true)
         // وسم النوع (رسالة / إشعار) بلون الثيم.
         row.addView(TextView(this).apply {
             text = if (isMessage) "رسالة" else "إشعار"
@@ -309,15 +309,20 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         return row
     }
 
-    /** ضغط الإشعار: يُعلّمه مقروءاً ويأخذنا إلى الدردشة مباشرةً (المحادثة المحدّدة إن توفّر المرسل). */
+    /** ضغط الإشعار: يُعلّمه مقروءاً. إشعار رسالة → الدردشة، وغيره → شاشة الإشعارات. */
     private fun openNotificationTarget(item: NotificationData) {
         NotifReadStore.markRead(this, listOf(item.id))
         cachedNotifs?.let { list ->
             val c = NotifReadStore.unreadCount(this, list)
             findViewById<TextView?>(R.id.tvNotifCount)?.visibility = if (c > 0) View.VISIBLE else View.GONE
         }
-        val i = Intent(this, MessagesActivity::class.java).apply {
-            if ((item.senderId ?: 0) != 0) {
+        // الـAPI الجديد لا يرسل sender_id/type — نستدلّ على إشعار الرسالة من العنوان.
+        val hasSender = (item.senderId ?: 0) != 0
+        val isMsg = hasSender || (item.title?.contains("رسالة") == true)
+        val target = if (isMsg) MessagesActivity::class.java else NotificationsActivity::class.java
+        if (this::class.java == target) return // نحن بالفعل على الوجهة
+        val i = Intent(this, target).apply {
+            if (hasSender) {
                 putExtra("OPEN_CHAT_ID", item.senderId)
                 putExtra("OPEN_CHAT_TYPE", item.chatType ?: "user")
                 putExtra("OPEN_CHAT_NAME", item.senderName)

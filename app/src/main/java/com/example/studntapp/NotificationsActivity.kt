@@ -44,11 +44,14 @@ class NotificationsActivity : BaseActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    /** ضغط الإشعار: يُعلّمه مقروءاً ويأخذنا إلى الدردشة (المحادثة المحدّدة إن توفّر المرسل). */
+    /** ضغط الإشعار: يُعلّمه مقروءاً. إشعار رسالة فقط يفتح الدردشة (الـAPI الجديد بلا sender_id لغير الرسائل). */
     private fun onNotificationClick(item: NotificationData) {
         NotifReadStore.markRead(this, listOf(item.id))
+        val hasSender = (item.senderId ?: 0) != 0
+        val isMsg = hasSender || (item.title?.contains("رسالة") == true)
+        if (!isMsg) return // إشعار عام — يبقى داخل شاشة الإشعارات
         val i = android.content.Intent(this, MessagesActivity::class.java).apply {
-            if ((item.senderId ?: 0) != 0) {
+            if (hasSender) {
                 putExtra("OPEN_CHAT_ID", item.senderId)
                 putExtra("OPEN_CHAT_TYPE", item.chatType ?: "user")
                 putExtra("OPEN_CHAT_NAME", item.senderName)
@@ -106,8 +109,8 @@ class NotificationsAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
-        // رسالة إذا كان النوع "message" أو وُجد اسم مرسل/محادثة (حتى لو النوع مفقود من API).
-        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank()
+        // الـAPI الجديد بلا type/sender — نستدلّ على الرسالة من العنوان أيضاً.
+        val isMessage = item.type == "message" || !item.senderName.isNullOrBlank() || (item.title?.contains("رسالة") == true)
         if (isMessage) {
             // رسالة: اسم المرسل كعنوان + مضمون الرسالة تحته.
             val nm = item.senderName?.takeIf { it.isNotBlank() && it != "null" }
