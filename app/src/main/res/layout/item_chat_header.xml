@@ -1,21 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tvArchiveHeader"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
-
-    <TextView
-        android:id="@+id/tvArchiveHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:background="@drawable/bg_pill_solid"
-        android:drawablePadding="8dp"
-        android:gravity="center"
-        android:paddingHorizontal="22dp"
-        android:paddingVertical="12dp"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:textStyle="bold" />
-</FrameLayout>
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="8dp"
+    android:background="@drawable/bg_pill_solid"
+    android:drawablePadding="10dp"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="16dp"
+    android:textColor="@color/white"
+    android:textSize="15sp"
+    android:textStyle="bold" />

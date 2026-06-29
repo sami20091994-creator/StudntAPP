@@ -29,7 +29,6 @@ class CalendarActivity : BaseActivity() {
     private var userId = 0
 
     private lateinit var rvDaily: RecyclerView
-    private lateinit var calendarView: CalendarView
     private lateinit var viewDaily: LinearLayout
     private lateinit var viewWeekly: ScrollView
     private lateinit var viewMonthly: ScrollView
@@ -38,7 +37,8 @@ class CalendarActivity : BaseActivity() {
     private lateinit var layoutNavHeader: LinearLayout
     private lateinit var tvPeriodName: TextView
     private lateinit var tvDailyTitle: TextView
-    private lateinit var dateStrip: LinearLayout
+    private lateinit var dailyCalGrid: GridLayout
+    private lateinit var tvDailyMonth: TextView
     private val eventDays = mutableSetOf<String>() // تواريخ "yyyy-MM-dd" فيها حصص
 
     private val sdfApi = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
@@ -62,7 +62,6 @@ class CalendarActivity : BaseActivity() {
         // ربط العناصر
         rvDaily = findViewById(R.id.rvDaily)
         rvDaily.layoutManager = LinearLayoutManager(this)
-        calendarView = findViewById(R.id.calendarView)
         viewDaily = findViewById(R.id.viewDaily)
         viewWeekly = findViewById(R.id.viewWeekly)
         viewMonthly = findViewById(R.id.viewMonthly)
@@ -71,7 +70,8 @@ class CalendarActivity : BaseActivity() {
         layoutNavHeader = findViewById(R.id.layoutNavHeader)
         tvPeriodName = findViewById(R.id.tvPeriodName)
         tvDailyTitle = findViewById(R.id.tvDailyTitle)
-        dateStrip = findViewById(R.id.dateStrip)
+        dailyCalGrid = findViewById(R.id.dailyCalGrid)
+        tvDailyMonth = findViewById(R.id.tvDailyMonth)
 
         // إعداد أزرار التبديل
         findViewById<TextView>(R.id.btnDaily).setOnClickListener { switchViewMode("daily") }
@@ -82,15 +82,9 @@ class CalendarActivity : BaseActivity() {
         findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { adjustDate(-1) }
         findViewById<ImageButton>(R.id.btnNext).setOnClickListener { adjustDate(1) }
 
-        // تقويم العرض اليومي
-        calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            val m = if (month + 1 < 10) "0${month + 1}" else "${month + 1}"
-            val d = if (dayOfMonth < 10) "0$dayOfMonth" else "$dayOfMonth"
-            selectedDateStr = "$year-$m-$d"
-            tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
-            loadSchedule()
-            loadMonthEvents()
-        }
+        // تنقّل شهر العرض اليومي
+        findViewById<ImageButton>(R.id.btnDailyPrev).setOnClickListener { shiftDailyMonth(-1) }
+        findViewById<ImageButton>(R.id.btnDailyNext).setOnClickListener { shiftDailyMonth(1) }
 
         switchViewMode("daily")
     }
@@ -137,8 +131,6 @@ class CalendarActivity : BaseActivity() {
                     setTextColor(Color.WHITE) 
                 }
                 viewDaily.visibility = View.VISIBLE
-                val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-                calendarView.date = cal.timeInMillis
                 tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
                 loadMonthEvents()
             }
@@ -199,7 +191,7 @@ class CalendarActivity : BaseActivity() {
         return tv.data
     }
 
-    /** يجلب حصص الشهر الحالي ليعرف أي أيام فيها أحداث، ثم يبني شريط الأيام. */
+    /** يجلب حصص الشهر الحالي ليعرف أي أيام فيها أحداث، ثم يبني شبكة الشهر. */
     private fun loadMonthEvents() {
         RetrofitClient.instance.getFullScheduleFiltered(
             userId = userId, role = role, date = selectedDateStr, viewMode = "monthly"
@@ -207,52 +199,78 @@ class CalendarActivity : BaseActivity() {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
                 eventDays.clear()
                 response.body()?.forEach { it.startDate?.let { d -> if (d.length >= 10) eventDays.add(d.substring(0, 10)) } }
-                buildDateStrip()
+                buildDailyCalendar()
             }
-            override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) { buildDateStrip() }
+            override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) { buildDailyCalendar() }
         })
     }
 
-    /** شريط أيام أفقي (±) مع نقطة تحت اليوم الذي فيه حصص. */
-    private fun buildDateStrip() {
-        dateStrip.removeAllViews()
+    /** تغيير شهر العرض اليومي (سابق/تالي) وإعادة الجلب. */
+    private fun shiftDailyMonth(amount: Int) {
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        cal.add(Calendar.MONTH, amount)
+        selectedDateStr = sdfApi.format(cal.time)
+        loadMonthEvents()
+    }
+
+    /** شبكة شهر مخصّصة: رقم اليوم + نقطة صغيرة تحته إن وُجد حدث (نمط غوغل). */
+    private fun buildDailyCalendar() {
+        dailyCalGrid.removeAllViews()
         val d = resources.displayMetrics.density
         fun px(v: Int) = (v * d).toInt()
-        val wkFmt = SimpleDateFormat("EEE", Locale("ar"))
-        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        cal.add(Calendar.DAY_OF_MONTH, -3)
 
-        for (i in 0 until 14) {
-            val dateStr = sdfApi.format(cal.time)
-            val millis = cal.timeInMillis
+        tvDailyMonth.text = SimpleDateFormat("MMMM yyyy", Locale("ar"))
+            .format(sdfApi.parse(selectedDateStr)!!)
+
+        // رؤوس الأيام (أحد..سبت)
+        val heads = arrayOf("أحد", "إثنين", "ثلا", "أرب", "خمي", "جمع", "سبت")
+        for (h in heads) {
+            dailyCalGrid.addView(TextView(this).apply {
+                text = h; gravity = Gravity.CENTER; textSize = 11f
+                setTextColor(col(R.color.ink_muted)); setPadding(0, px(6), 0, px(6))
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0; columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                }
+            })
+        }
+
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!!; set(Calendar.DAY_OF_MONTH, 1) }
+        val firstCol = cal.get(Calendar.DAY_OF_WEEK) - 1 // 0=أحد
+        val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val ym = SimpleDateFormat("yyyy-MM", Locale.ENGLISH).format(cal.time)
+
+        repeat(firstCol) {
+            dailyCalGrid.addView(View(this).apply {
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0; height = px(48); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                }
+            })
+        }
+
+        for (day in 1..daysInMonth) {
+            val dateStr = "$ym-${"%02d".format(day)}"
             val isSel = dateStr == selectedDateStr
             val hasEvent = eventDays.contains(dateStr)
 
             val cell = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                setPadding(px(12), px(8), px(12), px(8))
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { marginEnd = px(6) }
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = px(16).toFloat()
-                    setColor(if (isSel) primaryCol() else col(R.color.surface_alt))
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0; height = px(48); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    setMargins(px(2), px(2), px(2), px(2))
                 }
                 isClickable = true
+                if (isSel) background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = px(12).toFloat(); setColor(primaryCol())
+                }
             }
             cell.addView(TextView(this).apply {
-                text = wkFmt.format(Date(millis)); textSize = 11f
-                setTextColor(if (isSel) Color.WHITE else col(R.color.ink_muted))
-            })
-            cell.addView(TextView(this).apply {
-                text = "${(Calendar.getInstance().apply { timeInMillis = millis }).get(Calendar.DAY_OF_MONTH)}"
-                textSize = 16f
+                text = day.toString(); textSize = 15f
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setTextColor(if (isSel) Color.WHITE else col(R.color.ink))
             })
             cell.addView(View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(px(6), px(6)).apply { topMargin = px(4) }
+                layoutParams = LinearLayout.LayoutParams(px(5), px(5)).apply { topMargin = px(3) }
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.OVAL
                     setColor(if (isSel) Color.WHITE else primaryCol())
@@ -261,13 +279,11 @@ class CalendarActivity : BaseActivity() {
             })
             cell.setOnClickListener {
                 selectedDateStr = dateStr
-                calendarView.date = millis
                 tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
                 loadSchedule()
-                buildDateStrip()
+                buildDailyCalendar()
             }
-            dateStrip.addView(cell)
-            cal.add(Calendar.DAY_OF_MONTH, 1)
+            dailyCalGrid.addView(cell)
         }
     }
 

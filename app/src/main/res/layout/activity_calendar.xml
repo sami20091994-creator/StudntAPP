@@ -119,28 +119,56 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <CalendarView
-                android:id="@+id/calendarView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@color/surface_white" />
-
-            <!-- شريط أيام أفقي يُظهر نقطة تحت كل يوم فيه حصص -->
-            <HorizontalScrollView
+            <!-- رأس الشهر: السابق/التالي + اسم الشهر -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/surface_white"
-                android:scrollbars="none"
-                android:layoutDirection="rtl">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="6dp">
 
-                <LinearLayout
-                    android:id="@+id/dateStrip"
-                    android:layout_width="wrap_content"
+                <ImageButton
+                    android:id="@+id/btnDailyPrev"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="السابق"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="?attr/colorPrimary" />
+
+                <TextView
+                    android:id="@+id/tvDailyMonth"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="6dp" />
-            </HorizontalScrollView>
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/btnDailyNext"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="التالي"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_chevron_left"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+
+            <!-- شبكة شهر مخصّصة بنقطة تحت كل يوم فيه حدث (نمط غوغل) -->
+            <GridLayout
+                android:id="@+id/dailyCalGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_white"
+                android:columnCount="7"
+                android:paddingHorizontal="6dp"
+                android:paddingBottom="8dp" />
 
             <TextView
                 android:id="@+id/tvDailyTitle"

@@ -259,12 +259,14 @@ class MessagesActivity : BaseActivity() {
 
         val archivedCount = allChatsList.count { ChatPrefs.isArchived(this, ChatPrefs.keyOf(it)) }
         val rows = mutableListOf<ChatRow>()
+        // داخل وضع الأرشيف: زر الرجوع بالأعلى.
         if (showingArchived) rows.add(ChatRow.Header(archivedCount, true))
-        else if (archivedCount > 0) rows.add(ChatRow.Header(archivedCount, false))
         // داخل قائمة مخصّصة: صف لإضافة محادثات للقائمة
         if (!showingArchived && currentFilter.startsWith("list:"))
             rows.add(ChatRow.AddToList(currentFilter.removePrefix("list:")))
         sorted.forEach { rows.add(ChatRow.Item(it)) }
+        // دخول الأرشيف: شريط بكامل العرض أسفل القائمة.
+        if (!showingArchived && archivedCount > 0) rows.add(ChatRow.Header(archivedCount, false))
         chatListAdapter.submit(rows)
     }
 
