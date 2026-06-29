@@ -118,7 +118,7 @@ class ReportSubjectsAdapter(
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val title: TextView = v.findViewById(R.id.tvSubjectName)
         val teacher: TextView = v.findViewById(R.id.tvTeacherName)
-        val group: TextView = v.findViewById(R.id.tvGroup)
+//        val group: TextView = v.findViewById(R.id.tvGroup)
         val semester: TextView = v.findViewById(R.id.tvSemester)
         val status: TextView = v.findViewById(R.id.tvStatus)
     }
@@ -142,8 +142,8 @@ class ReportSubjectsAdapter(
         holder.teacher.visibility = if (t != null) View.VISIBLE else View.GONE
 
         // فقاعة المجموعة (subject_groups) بجانب اسم المدرّس
-        holder.group.text = groupTag ?: ""
-        holder.group.visibility = if (groupTag != null) View.VISIBLE else View.GONE
+//        holder.group.text = groupTag ?: ""
+//        holder.group.visibility = if (groupTag != null) View.VISIBLE else View.GONE
 
         // فقاعة الحالة: مكتملة (أخضر فاتح) / نشطة
         val raw = item.status?.trim()?.lowercase()

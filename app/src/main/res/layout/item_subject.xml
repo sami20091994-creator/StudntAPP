@@ -72,18 +72,18 @@
                 android:textStyle="bold"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/tvGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_pill"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:textColor="@color/ink"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+<!--            <TextView-->
+<!--                android:id="@+id/tvGroup"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginEnd="8dp"-->
+<!--                android:background="@drawable/bg_pill"-->
+<!--                android:paddingHorizontal="12dp"-->
+<!--                android:paddingVertical="6dp"-->
+<!--                android:textColor="@color/ink"-->
+<!--                android:textSize="12sp"-->
+<!--                android:textStyle="bold"-->
+<!--                android:visibility="gone" />-->
 
             <TextView
                 android:id="@+id/tvSemester"

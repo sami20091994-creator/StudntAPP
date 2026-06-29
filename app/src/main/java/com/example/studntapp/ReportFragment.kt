@@ -80,7 +80,7 @@ class ReportFragment : Fragment() {
         }
         filterCard.addView(TextView(ctx).apply {
             text = "تصفية حسب المادة"
-            textSize = 15f
+            textSize = 14f
             setTextColor(primaryColor())
             setTypeface(null, Typeface.BOLD)
             gravity = Gravity.START
@@ -99,15 +99,15 @@ class ReportFragment : Fragment() {
         val avgBox = statCard(ctx, primaryColor()).apply {
             (layoutParams as LinearLayout.LayoutParams).marginEnd = 18
         }
-        avgBox.addView(TextView(ctx).apply { text = "المعدل التراكمي"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
-        tvAverage = TextView(ctx).apply { text = "0%"; textSize = 32f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
+        avgBox.addView(TextView(ctx).apply { text = "المعدل التراكمي"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
+        tvAverage = TextView(ctx).apply { text = "0%"; textSize = 30f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
         avgBox.addView(tvAverage)
 
         val quizBox = statCard(ctx, col(R.color.success_green)).apply {
             (layoutParams as LinearLayout.LayoutParams).marginStart = 18
         }
-        quizBox.addView(TextView(ctx).apply { text = "إجمالي الاختبارات"; setTextColor(col(R.color.ink_muted)); textSize = 13f })
-        tvQuizzes = TextView(ctx).apply { text = "0"; textSize = 32f; setTextColor(col(R.color.success_green)); setTypeface(null, Typeface.BOLD) }
+        quizBox.addView(TextView(ctx).apply { text = "إجمالي الاختبارات"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
+        tvQuizzes = TextView(ctx).apply { text = "0"; textSize = 30f; setTextColor(col(R.color.success_green)); setTypeface(null, Typeface.BOLD) }
         quizBox.addView(tvQuizzes)
 
         statsLayout.addView(avgBox)
@@ -138,6 +138,7 @@ class ReportFragment : Fragment() {
         fun px(v: Int) = (v * d).toInt()
         val card = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL // نفس تدفّق بطاقة الفلتر
             setPadding(px(14), px(14), px(14), px(14))
             background = GradientDrawable().apply {
                 setColor(col(R.color.surface)); cornerRadius = px(20).toFloat()
@@ -149,9 +150,10 @@ class ReportFragment : Fragment() {
         }
         card.addView(TextView(ctx).apply {
             text = title; textSize = 16f; setTextColor(color)
-            setTypeface(null, Typeface.BOLD); gravity = Gravity.END
-            setPadding(0, 0, px(4), px(10))
+            setTypeface(null, Typeface.BOLD); gravity = Gravity.START
+            setPadding(px(4), 0, px(4), px(10))
         })
+        container.layoutDirection = View.LAYOUT_DIRECTION_RTL
         card.addView(container)
         return card
     }
@@ -197,19 +199,19 @@ class ReportFragment : Fragment() {
         }
         info.addView(TextView(ctx).apply {
             text = name.ifEmpty { "طالب" }; setTextColor(android.graphics.Color.WHITE)
-            textSize = 18f; setTypeface(null, Typeface.BOLD)
+            textSize = 16f; setTypeface(null, Typeface.BOLD)
         })
         info.addView(TextView(ctx).apply {
-            text = "التقرير الأكاديمي الشامل"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 13f
+            text = "التقرير الأكاديمي الشامل"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 14f
         })
         row.addView(info)
         // مؤشّر المعدل
         val hl = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         tvHeaderAvg = TextView(ctx).apply {
-            text = "0%"; setTextColor(android.graphics.Color.WHITE); textSize = 24f; setTypeface(null, Typeface.BOLD)
+            text = "0%"; setTextColor(android.graphics.Color.WHITE); textSize = 30f; setTypeface(null, Typeface.BOLD)
         }
         hl.addView(tvHeaderAvg)
-        hl.addView(TextView(ctx).apply { text = "المعدل العام"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 11f })
+        hl.addView(TextView(ctx).apply { text = "المعدل العام"; setTextColor(android.graphics.Color.parseColor("#E0E0F0")); textSize = 12f })
         row.addView(hl)
         return row
     }
@@ -239,7 +241,7 @@ class ReportFragment : Fragment() {
     private fun createSectionTitle(title: String, color: Int): TextView {
         return TextView(requireContext()).apply {
             text = title
-            textSize = 18f
+            textSize = 16f
             setTextColor(color)
             setTypeface(null, Typeface.BOLD)
             setPadding(0, 40, 10, 20)
@@ -329,12 +331,12 @@ class ReportFragment : Fragment() {
                 setColor(if (isActive) col(R.color.surface_alt) else col(R.color.success_green))
                 cornerRadius = 12f
             }
-            setPadding(20, 8, 20, 8); textSize = 11f; gravity = Gravity.CENTER
+            setPadding(20, 8, 20, 8); textSize = 12f; gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3f)
         }
 
         val tvName = TextView(ctx).apply {
-            text = name; textSize = 15f; setTypeface(null, Typeface.BOLD)
+            text = name; textSize = 14f; setTypeface(null, Typeface.BOLD)
             setTextColor(col(R.color.ink))
             gravity = Gravity.END; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 7f)
         }
