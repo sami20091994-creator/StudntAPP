@@ -53,7 +53,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize|stateVisible" />
 
         <activity android:name=".HomeShellActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />

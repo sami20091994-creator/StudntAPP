@@ -87,28 +87,28 @@ class SettingsActivity : BaseActivity() {
             }
             container.addView(swatch)
         }
+        setupThemeModeSpinner()
+    }
 
-        // زر تبديل الوضع الداكن (مستقل عن الباقة، بنفس الانيميشن الدائري)
-        val toggle = ImageView(this)
-        val tlp = LinearLayout.LayoutParams(size, size)
-        tlp.marginStart = dpx(8)
-        toggle.layoutParams = tlp
-        toggle.setPadding(dpx(11), dpx(11), dpx(11), dpx(11))
-        toggle.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(androidx.core.content.ContextCompat.getColor(this@SettingsActivity, R.color.surface_alt))
-            setStroke(dpx(1), Color.parseColor("#33000000"))
+    // ===== قائمة منسدلة لوضع السطوع: فاتح / داكن / حسب الجهاز =====
+    private fun setupThemeModeSpinner() {
+        val spinner = findViewById<android.widget.Spinner>(R.id.spinnerThemeMode)
+        val labels = listOf("فاتح (Light)", "داكن (Dark)", "حسب الجهاز (As Device)")
+        val modes = listOf(ThemeManager.MODE_LIGHT, ThemeManager.MODE_DARK, ThemeManager.MODE_SYSTEM)
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        // الاختيار الحالي بلا إطلاق حدث
+        spinner.setSelection(modes.indexOf(ThemeManager.savedMode(this)).coerceAtLeast(0), false)
+        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                if (modes[pos] != ThemeManager.savedMode(this@SettingsActivity)) {
+                    ThemeManager.setMode(this@SettingsActivity, modes[pos])
+                    ThemeManager.circularRecreateNight(this@SettingsActivity, spinner)
+                }
+            }
+            override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
-        fun refreshToggleIcon() {
-            toggle.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
-            toggle.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.ink))
-        }
-        refreshToggleIcon()
-        toggle.setOnClickListener {
-            ThemeManager.toggleNight(this)
-            ThemeManager.circularRecreateNight(this, toggle)
-        }
-        container.addView(toggle)
     }
 
     // ===== التواصل =====

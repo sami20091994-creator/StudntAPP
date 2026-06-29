@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.text.InputType
 import android.widget.Button
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
@@ -202,6 +203,22 @@ class MainActivity : AppCompatActivity() {
         etPassword.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { btnLogin.performClick(); true } else false
         }
+
+        // عند الضغط على أي حقل: تمريره لمنتصف الشاشة فوق الكيبورد لحصر التركيز.
+        val scroll = findViewById<android.widget.ScrollView>(R.id.scrollLogin)
+        val centerOnFocus = { field: View ->
+            scroll.postDelayed({
+                val r = android.graphics.Rect()
+                field.getDrawingRect(r)
+                scroll.offsetDescendantRectToMyCoords(field, r)
+                val target = r.top + field.height / 2 - scroll.height / 2
+                scroll.smoothScrollTo(0, target.coerceAtLeast(0))
+            }, 300)
+        }
+        etPhone.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
+        etPassword.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
+        etPhone.setOnClickListener { centerOnFocus(etPhone) }
+        etPassword.setOnClickListener { centerOnFocus(etPassword) }
 
         // نسيت كلمة المرور؟
         findViewById<TextView>(R.id.btnForgotPassword).setOnClickListener { showForgotPasswordDialog() }
