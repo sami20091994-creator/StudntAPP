@@ -20,6 +20,21 @@
             android:background="@drawable/bg_login_header"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- زر الوضع الداكن -->
+        <ImageButton
+            android:id="@+id/btnLoginThemeToggle"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="18dp"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/bg_circle_translucent"
+            android:contentDescription="الوضع الداكن"
+            android:padding="11dp"
+            android:src="@drawable/ic_dark_mode"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white" />
+
         <!-- شعار داخل بطاقة دائرية بيضاء -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/logoCard"

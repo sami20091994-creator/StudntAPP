@@ -71,7 +71,9 @@ class EvaluationActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
-                Toast.makeText(this@EvaluationActivity, "خطأ في الاتصال بالخادم", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("EVAL_FAIL", "getEnrolledSubjects failed (studentId=$studentId)", t)
+                val reason = t.message ?: t.javaClass.simpleName
+                Toast.makeText(this@EvaluationActivity, "خطأ في الاتصال بالخادم: $reason", Toast.LENGTH_LONG).show()
             }
         })
     }

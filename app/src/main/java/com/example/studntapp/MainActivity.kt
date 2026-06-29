@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -179,6 +180,14 @@ class MainActivity : AppCompatActivity() {
         etPhone = findViewById(R.id.etPhone)
         etPassword = findViewById(R.id.etNewPassword)
         btnLogin = findViewById(R.id.btnLogin)
+
+        // زر الوضع الداكن في شاشة الدخول
+        val btnLoginTheme = findViewById<ImageButton>(R.id.btnLoginThemeToggle)
+        btnLoginTheme.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
+        btnLoginTheme.setOnClickListener {
+            ThemeManager.toggleNight(this)
+            ThemeManager.circularRecreateNight(this, it)
+        }
 
         // تركيز المؤشر تلقائياً على حقل الهاتف وإظهار لوحة المفاتيح.
         etPhone.requestFocus()

@@ -19,7 +19,12 @@ object ThemeManager {
 
     private const val PREFS = "AppSession"
     private const val KEY_PALETTE = "THEME_PALETTE"
-    private const val KEY_DARK = "THEME_DARK" // الوضع الداكن مستقل عن الباقة
+    private const val KEY_MODE = "THEME_MODE" // light | dark | system
+
+    // أوضاع السطوع
+    const val MODE_LIGHT = "light"
+    const val MODE_DARK = "dark"
+    const val MODE_SYSTEM = "system" // افتراضي: حسب الجهاز
 
     // مفاتيح الباقات اللونية الخمس
     const val INDIGO = "indigo"
@@ -48,29 +53,42 @@ object ThemeManager {
     private fun styleFor(key: String): Int =
         palettes.firstOrNull { it.key == key }?.styleRes ?: R.style.Theme_Resalaty_Indigo
 
-    /** الوضع الداكن مفعّل؟ (مستقل عن الباقة — يُبدّله زر التبديل.) */
-    fun isNight(ctx: Context): Boolean =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DARK, false)
+    /** الوضع المحفوظ: light | dark | system (الافتراضي system = حسب الجهاز). */
+    fun savedMode(ctx: Context): String =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_MODE, MODE_SYSTEM) ?: MODE_SYSTEM
 
-    fun setNight(ctx: Context, on: Boolean) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_DARK, on).apply()
+    fun setMode(ctx: Context, mode: String) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_MODE, mode).apply()
     }
 
+    /** ترجمة الوضع إلى قيمة AppCompat. */
+    private fun nightModeInt(ctx: Context): Int = when (savedMode(ctx)) {
+        MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+        MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+    }
+
+    /** هل المظهر الفعّال داكن الآن؟ (لأيقونات الأزرار/الألوان). */
+    fun isNight(ctx: Context): Boolean = when (savedMode(ctx)) {
+        MODE_DARK -> true
+        MODE_LIGHT -> false
+        else -> (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    /** زر التبديل السريع: يقلب بين فاتح وداكن صراحةً (يتجاوز وضع الجهاز). */
+    fun setNight(ctx: Context, on: Boolean) = setMode(ctx, if (on) MODE_DARK else MODE_LIGHT)
     fun toggleNight(ctx: Context) = setNight(ctx, !isNight(ctx))
 
-    /** يُستدعى داخل onCreate قبل setContentView لتطبيق الباقة + الوضع الداكن. */
+    /** يُستدعى داخل onCreate قبل setContentView لتطبيق الباقة + وضع السطوع. */
     fun applyTheme(activity: AppCompatActivity) {
-        // الوضع الداكن يُضبط عالمياً مرّة واحدة عبر setDefaultNightMode (لا per-activity)،
-        // فلا تحدث إعادة بناء مزدوجة (سبب الومضة/الـ Drop). تُحمَّل موارد values-night
-        // فوق الباقة اللونية المختارة.
-        val want = if (isNight(activity)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        val want = nightModeInt(activity)
         if (AppCompatDelegate.getDefaultNightMode() != want) AppCompatDelegate.setDefaultNightMode(want)
         activity.setTheme(styleFor(savedPaletteKey(activity)))
     }
 
-    /** بصمة الحالة (الباقة + الوضع الداكن) لاكتشاف التغيّر وإعادة البناء. */
+    /** بصمة الحالة (الباقة + الوضع) لاكتشاف التغيّر وإعادة البناء. */
     fun currentSignature(ctx: Context): String =
-        savedPaletteKey(ctx) + if (isNight(ctx)) ":dark" else ":light"
+        savedPaletteKey(ctx) + ":" + savedMode(ctx)
 
     // ===== فرض RTL + اللغة العربية + الوضع الليلي (مرتبط بالباقة الداكنة) =====
     fun wrapRtl(base: Context): Context {
@@ -131,10 +149,10 @@ object ThemeManager {
         activity.recreate()
     }
 
-    /** تبديل **الوضع الداكن**: إعادة بناء واحدة عبر المفوّض العام (بلا ازدواج/Drop) + انكشاف. */
+    /** تبديل **وضع السطوع** (فاتح/داكن/الجهاز): إعادة بناء واحدة عبر المفوّض + انكشاف. */
     fun circularRecreateNight(activity: android.app.Activity, source: View?) {
         if (!captureForReveal(activity, source)) { smoothRecreate(activity); return }
-        val want = if (isNight(activity)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        val want = nightModeInt(activity)
         if (AppCompatDelegate.getDefaultNightMode() != want) {
             AppCompatDelegate.setDefaultNightMode(want) // إعادة بناء واحدة يديرها AppCompat
         } else {

@@ -612,6 +612,15 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
 
         v.findViewById<ImageButton>(R.id.btnNavClose).setOnClickListener { dlg.dismiss() }
 
+        // زر الوضع الداكن داخل النافبار
+        val btnNavTheme = v.findViewById<ImageButton>(R.id.btnNavTheme)
+        btnNavTheme.setImageResource(if (ThemeManager.isNight(this)) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
+        btnNavTheme.setOnClickListener {
+            ThemeManager.toggleNight(this)
+            dlg.dismiss()
+            ThemeManager.circularRecreateNight(this, null)
+        }
+
         val list = v.findViewById<LinearLayout>(R.id.llNavList)
         val cells = navCellsForRole()
         // مجموعتان بطاقيتان بزوايا منحنية مثل غوغل: الوجهات + تسجيل الخروج منفصل.
