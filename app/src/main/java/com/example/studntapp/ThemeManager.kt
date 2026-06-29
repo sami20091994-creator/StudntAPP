@@ -61,18 +61,23 @@ object ThemeManager {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_MODE, mode).apply()
     }
 
-    /** ترجمة الوضع إلى قيمة AppCompat. */
+    /** ثيم الجهاز الحالي داكن؟ (يُقرأ من إعداد النظام مباشرةً، لا من سياق التطبيق الذي قد يكون متجاوَزاً). */
+    private fun deviceIsNight(): Boolean =
+        (android.content.res.Resources.getSystem().configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+
+    /** ترجمة الوضع إلى قيمة AppCompat. "حسب الجهاز" يُحوّل صراحةً لفاتح/داكن وفق ثيم النظام لضمان الاحترام. */
     private fun nightModeInt(ctx: Context): Int = when (savedMode(ctx)) {
         MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
         MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        else -> if (deviceIsNight()) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
     }
 
     /** هل المظهر الفعّال داكن الآن؟ (لأيقونات الأزرار/الألوان). */
     fun isNight(ctx: Context): Boolean = when (savedMode(ctx)) {
         MODE_DARK -> true
         MODE_LIGHT -> false
-        else -> (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        else -> deviceIsNight()
     }
 
     /** زر التبديل السريع: يقلب بين فاتح وداكن صراحةً (يتجاوز وضع الجهاز). */

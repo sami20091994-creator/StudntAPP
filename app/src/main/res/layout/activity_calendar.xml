@@ -160,15 +160,12 @@
                     app:tint="?attr/colorPrimary" />
             </LinearLayout>
 
-            <!-- شبكة شهر مخصّصة بنقطة تحت كل يوم فيه حدث (نمط غوغل) -->
-            <GridLayout
-                android:id="@+id/dailyCalGrid"
+            <!-- تقويم شهري قابل للتمرير الأفقي بين الأشهر، بنقاط أحداث -->
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/monthPager"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@color/surface_white"
-                android:columnCount="7"
-                android:paddingHorizontal="6dp"
-                android:paddingBottom="8dp" />
+                android:layout_height="330dp"
+                android:background="@color/surface_white" />
 
             <TextView
                 android:id="@+id/tvDailyTitle"
