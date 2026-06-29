@@ -9,6 +9,7 @@ import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -34,6 +35,10 @@ class MaterialsFragment : Fragment(), BackInterceptor {
     private var role = ""
     private var userId = 0
     private var currentSubjectId = 0
+    private var allSubjects: List<SubjectData> = emptyList()
+    private var currentFilter = "" // "" | active | completed
+    private var allMaterials: List<MaterialData> = emptyList()
+    private var contentFilter = "" // "" | video | pdf | audio
 
     private val pickFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -60,14 +65,71 @@ class MaterialsFragment : Fragment(), BackInterceptor {
         rv.layoutManager = LinearLayoutManager(ctx)
         fabUpload.setOnClickListener { selectFileToUpload() }
 
+        view.findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupFilter)
+            .setOnCheckedStateChangeListener { _, ids ->
+                currentFilter = when {
+                    ids.contains(R.id.chipActive) -> "active"
+                    ids.contains(R.id.chipCompleted) -> "completed"
+                    else -> ""
+                }
+                renderSubjects()
+            }
+
+        view.findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupContent)
+            .setOnCheckedStateChangeListener { _, ids ->
+                contentFilter = when {
+                    ids.contains(R.id.chipVideo) -> "video"
+                    ids.contains(R.id.chipPdf) -> "pdf"
+                    ids.contains(R.id.chipAudio) -> "audio"
+                    else -> ""
+                }
+                renderMaterials()
+            }
+
         loadSubjects()
     }
 
+    private fun renderMaterials() {
+        if (!isAdded) return
+        val v = view ?: return
+        val byType = { k: String -> allMaterials.filter { materialKind(it) == k } }
+        v.findViewById<com.google.android.material.chip.Chip>(R.id.chipVideo).isEnabled = byType("video").isNotEmpty()
+        v.findViewById<com.google.android.material.chip.Chip>(R.id.chipPdf).isEnabled = byType("pdf").isNotEmpty()
+        v.findViewById<com.google.android.material.chip.Chip>(R.id.chipAudio).isEnabled = byType("audio").isNotEmpty()
+
+        val filtered = if (contentFilter.isEmpty()) allMaterials else byType(contentFilter)
+        rv.adapter = MaterialsAdapter(filtered, requireContext())
+        v.findViewById<View?>(R.id.emptyState)?.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun renderSubjects() {
+        if (!isAdded) return
+        val active = setOf("active", "نشطة", "ongoing")
+        val done = setOf("completed", "complete", "done", "finished", "مكتملة")
+        val filtered = when (currentFilter) {
+            "active" -> allSubjects.filter { it.status?.trim()?.lowercase() in active }
+            "completed" -> allSubjects.filter { it.status?.trim()?.lowercase() in done }
+            else -> allSubjects
+        }
+        rv.adapter = ReportSubjectsAdapter(filtered) { sub ->
+            val subId = sub.subjectId ?: 0
+            if (subId != 0) loadMaterialsForSubject(subId, sub.subjectName ?: "مادة", sub.teacherName, sub.status)
+        }
+        rv.alpha = 0f; rv.translationX = -rv.width.toFloat().coerceAtLeast(120f) * 0.25f
+        rv.animate().alpha(1f).translationX(0f).setDuration(240).start()
+    }
+
     private fun loadSubjects() {
+        if (currentSubjectId != 0) {
+            rv.animate().alpha(0f).translationX(rv.width.toFloat().coerceAtLeast(120f) * 0.25f).setDuration(170).start()
+        }
         currentSubjectId = 0
         setTitle("قائمة المواد الدراسية")
         fabUpload.visibility = View.GONE
-        activity?.findViewById<View?>(R.id.fabMessages)?.translationY = 0f
+        view?.findViewById<View?>(R.id.filterBar)?.visibility = View.VISIBLE
+        view?.findViewById<View?>(R.id.contentFilterBar)?.visibility = View.GONE
+        view?.findViewById<View?>(R.id.contentHeader)?.visibility = View.GONE
+        view?.findViewById<View?>(R.id.emptyState)?.visibility = View.GONE
 
         RetrofitClient.instance.getSubjects(userId = userId, role = role)
             .enqueue(object : Callback<SubjectListResponse> {
@@ -75,13 +137,11 @@ class MaterialsFragment : Fragment(), BackInterceptor {
                     if (!isAdded) return
                     if (response.isSuccessful && response.body()?.status == "success") {
                         val subjects = response.body()?.data ?: emptyList()
+                        allSubjects = subjects
                         if (subjects.isEmpty()) {
                             Toast.makeText(requireContext(), "لا توجد مواد متاحة", Toast.LENGTH_SHORT).show()
                         } else {
-                            rv.adapter = ReportSubjectsAdapter(subjects) { sub ->
-                                val subId = sub.subjectId ?: 0
-                                if (subId != 0) loadMaterialsForSubject(subId, sub.subjectName ?: "مادة")
-                            }
+                            renderSubjects()
                         }
                     }
                 }
@@ -92,26 +152,33 @@ class MaterialsFragment : Fragment(), BackInterceptor {
             })
     }
 
-    private fun loadMaterialsForSubject(subjectId: Int, subjectName: String) {
+    private fun loadMaterialsForSubject(subjectId: Int, subjectName: String, teacher: String? = null, status: String? = null) {
         currentSubjectId = subjectId
         setTitle("المواد الدراسية المرفوعة")
+        view?.findViewById<View?>(R.id.filterBar)?.visibility = View.GONE
+        view?.findViewById<View?>(R.id.contentFilterBar)?.visibility = View.VISIBLE
+        view?.findViewById<View?>(R.id.contentHeader)?.visibility = View.VISIBLE
+        view?.findViewById<TextView>(R.id.tvContentTitle)?.text = cleanSubjectName(subjectName)
+        val tTeacher = view?.findViewById<TextView>(R.id.tvContentTeacher)
+        val tStatus = view?.findViewById<TextView>(R.id.tvContentStatus)
+        if (tTeacher != null && tStatus != null) bindCourseMeta(tTeacher, tStatus, teacher, status)
+        contentFilter = ""
+        view?.findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupContent)?.clearCheck()
         fabUpload.visibility = if (role == "teacher") View.VISIBLE else View.GONE
-        if (role == "teacher")
-            activity?.findViewById<View?>(R.id.fabMessages)?.translationY = -resources.displayMetrics.density * 70
+
+        // أنيميشن دخول للمقرّر
+        rv.alpha = 0f; rv.translationX = rv.width.toFloat().coerceAtLeast(120f)
+        rv.animate().alpha(1f).translationX(0f).setDuration(260).start()
 
         RetrofitClient.instance.getSubjectMaterials(subjectId = subjectId).enqueue(object : Callback<MaterialResponse> {
             override fun onResponse(call: Call<MaterialResponse>, response: Response<MaterialResponse>) {
                 if (!isAdded) return
-                if (response.isSuccessful) {
-                    val materials = response.body()?.data ?: emptyList()
-                    if (materials.isEmpty()) {
-                        Toast.makeText(requireContext(), "لا توجد ملفات مرفوعة", Toast.LENGTH_SHORT).show()
-                    }
-                    rv.adapter = MaterialsAdapter(materials, requireContext())
-                }
+                allMaterials = response.body()?.data ?: emptyList()
+                renderMaterials()
             }
             override fun onFailure(call: Call<MaterialResponse>, t: Throwable) {
                 if (!isAdded) return
+                allMaterials = emptyList(); renderMaterials()
                 Toast.makeText(requireContext(), "فشل تحميل الملفات", Toast.LENGTH_SHORT).show()
             }
         })

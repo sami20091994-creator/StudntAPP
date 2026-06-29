@@ -118,6 +118,7 @@ class ReportSubjectsAdapter(
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val title: TextView = v.findViewById(R.id.tvSubjectName)
         val teacher: TextView = v.findViewById(R.id.tvTeacherName)
+        val group: TextView = v.findViewById(R.id.tvGroup)
         val semester: TextView = v.findViewById(R.id.tvSemester)
         val status: TextView = v.findViewById(R.id.tvStatus)
     }
@@ -127,21 +128,42 @@ class ReportSubjectsAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
-        holder.title.text = item.subjectName
+        val ctx = holder.itemView.context
+
+        // اسم المادة + استخراج تاغ المجموعة [..] أو (..) إن وُجد داخل الاسم.
+        val rawName = item.subjectName ?: ""
+        val groupMatch = Regex("[\\[(]([^\\])]+)[\\])]").find(rawName)
+        val groupTag = groupMatch?.groupValues?.get(1)?.trim()
+        holder.title.text = if (groupTag != null) rawName.replace(groupMatch!!.value, "").trim() else rawName
 
         // فقاعة المدرّس
         val t = item.teacherName?.takeIf { it.isNotBlank() && it != "null" }
         holder.teacher.text = t ?: ""
         holder.teacher.visibility = if (t != null) View.VISIBLE else View.GONE
 
-        // فقاعة الحالة (نشطة/منتهية…)
-        val s = item.status?.takeIf { it.isNotBlank() && it != "null" }
-        holder.status.text = s ?: ""
-        holder.status.visibility = if (s != null) View.VISIBLE else View.GONE
+        // فقاعة المجموعة (subject_groups) بجانب اسم المدرّس
+        holder.group.text = groupTag ?: ""
+        holder.group.visibility = if (groupTag != null) View.VISIBLE else View.GONE
 
-        // الفصل الدراسي غير متوفّر في بيانات السيرفر حالياً → يبقى مخفياً.
+        // فقاعة الحالة: مكتملة (أخضر فاتح) / نشطة
+        val raw = item.status?.trim()?.lowercase()
+        when {
+            raw == "completed" || raw == "complete" || raw == "done" || raw == "finished" || raw == "مكتملة" -> {
+                holder.status.text = "مكتملة"
+                holder.status.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_completed)
+                holder.status.setTextColor(Color.parseColor("#166534"))
+                holder.status.visibility = View.VISIBLE
+            }
+            raw == "active" || raw == "نشطة" || raw == "ongoing" -> {
+                holder.status.text = "نشطة"
+                holder.status.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_active)
+                holder.status.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
+                holder.status.visibility = View.VISIBLE
+            }
+            else -> holder.status.visibility = View.GONE
+        }
+
         holder.semester.visibility = View.GONE
-
         holder.itemView.setOnClickListener { onItemClick(item) }
     }
 

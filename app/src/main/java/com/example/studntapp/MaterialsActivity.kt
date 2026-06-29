@@ -28,6 +28,51 @@ import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
 
+/** ينظّف اسم المادة من تاغ المجموعة بين الأقواس للعرض كعنوان واضح. */
+fun cleanSubjectName(name: String?): String {
+    val n = name ?: return "المادة"
+    val cleaned = n.replace(Regex("[\\[(][^\\])]*[\\])]"), "").trim()
+    return if (cleaned.isNotEmpty()) cleaned else n.trim()
+}
+
+/** يضبط فقاعتي اسم المدرّس وحالة المادة في رأس المقرّر. */
+fun bindCourseMeta(teacherTv: TextView, statusTv: TextView, teacher: String?, status: String?) {
+    val ctx = statusTv.context
+    val t = teacher?.takeIf { it.isNotBlank() && it != "null" }
+    teacherTv.text = t ?: ""
+    teacherTv.visibility = if (t != null) View.VISIBLE else View.GONE
+
+    val raw = status?.trim()?.lowercase()
+    val done = setOf("completed", "complete", "done", "finished", "مكتملة")
+    val active = setOf("active", "نشطة", "ongoing")
+    when (raw) {
+        in done -> {
+            statusTv.text = "مكتملة"
+            statusTv.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_completed)
+            statusTv.setTextColor(android.graphics.Color.parseColor("#166534"))
+            statusTv.visibility = View.VISIBLE
+        }
+        in active -> {
+            statusTv.text = "نشطة"
+            statusTv.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_active)
+            statusTv.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
+            statusTv.visibility = View.VISIBLE
+        }
+        else -> statusTv.visibility = View.GONE
+    }
+}
+
+/** تصنيف نوع المحتوى التعليمي حسب النوع/الامتداد: video / pdf / audio / other. */
+fun materialKind(m: MaterialData): String {
+    val s = ((m.fileType ?: "") + " " + (m.filePath ?: "")).lowercase()
+    return when {
+        s.contains("video") || Regex("\\.(mp4|mkv|avi|mov|webm|3gp)").containsMatchIn(s) -> "video"
+        s.contains("pdf") -> "pdf"
+        s.contains("audio") || Regex("\\.(mp3|wav|m4a|ogg|aac|opus)").containsMatchIn(s) -> "audio"
+        else -> "other"
+    }
+}
+
 class MaterialsActivity : BaseActivity() {
 
     private lateinit var rv: RecyclerView
@@ -35,6 +80,10 @@ class MaterialsActivity : BaseActivity() {
     private var role = ""
     private var userId = 0
     private var currentSubjectId = 0
+    private var allSubjects: List<SubjectData> = emptyList()
+    private var currentFilter = "" // "" | active | completed
+    private var allMaterials: List<MaterialData> = emptyList()
+    private var contentFilter = "" // "" | video | pdf | audio
 
     // الطريقة الحديثة والمستقرة لاختيار الملفات في الأندرويد
     private val pickFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -61,6 +110,29 @@ class MaterialsActivity : BaseActivity() {
 
         fabUpload.setOnClickListener { selectFileToUpload() }
 
+        // أزرار الفرز (نشطة / مكتملة)
+        findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupFilter)
+            .setOnCheckedStateChangeListener { _, ids ->
+                currentFilter = when {
+                    ids.contains(R.id.chipActive) -> "active"
+                    ids.contains(R.id.chipCompleted) -> "completed"
+                    else -> ""
+                }
+                renderSubjects()
+            }
+
+        // أزرار فرز المحتوى (فيديو/PDF/صوتي)
+        findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupContent)
+            .setOnCheckedStateChangeListener { _, ids ->
+                contentFilter = when {
+                    ids.contains(R.id.chipVideo) -> "video"
+                    ids.contains(R.id.chipPdf) -> "pdf"
+                    ids.contains(R.id.chipAudio) -> "audio"
+                    else -> ""
+                }
+                renderMaterials()
+            }
+
         val sId = intent.getIntExtra("SUBJECT_ID", 0)
         val sName = intent.getStringExtra("SUBJECT_NAME")
 
@@ -71,11 +143,36 @@ class MaterialsActivity : BaseActivity() {
         }
     }
 
+    /** يبني قائمة المواد بعد تطبيق الفرز الحالي (نشطة/مكتملة/الكل). */
+    private fun renderSubjects() {
+        val active = setOf("active", "نشطة", "ongoing")
+        val done = setOf("completed", "complete", "done", "finished", "مكتملة")
+        val filtered = when (currentFilter) {
+            "active" -> allSubjects.filter { it.status?.trim()?.lowercase() in active }
+            "completed" -> allSubjects.filter { it.status?.trim()?.lowercase() in done }
+            else -> allSubjects
+        }
+        rv.adapter = ReportSubjectsAdapter(filtered) { sub ->
+            val subId = sub.subjectId ?: 0
+            if (subId != 0) loadMaterialsForSubject(subId, sub.subjectName ?: "مادة", sub.teacherName, sub.status)
+        }
+        // دخول قائمة المواد بنعومة (تظهر بعد الرجوع من مقرّر)
+        rv.alpha = 0f; rv.translationX = -rv.width.toFloat().coerceAtLeast(120f) * 0.25f
+        rv.animate().alpha(1f).translationX(0f).setDuration(240).start()
+    }
+
     private fun loadSubjects() {
+        // أنيميشن خروج من صفحة المحتوى المرفوع عند الرجوع للقائمة.
+        if (currentSubjectId != 0) {
+            rv.animate().alpha(0f).translationX(rv.width.toFloat().coerceAtLeast(120f) * 0.25f).setDuration(170).start()
+        }
         currentSubjectId = 0
         supportActionBar?.title = "قائمة المواد الدراسية"
         fabUpload.visibility = View.GONE
-        findViewById<View?>(R.id.fabMessages)?.translationY = 0f // إعادة زر الرسائل لمكانه
+        findViewById<View?>(R.id.filterBar)?.visibility = View.VISIBLE
+        findViewById<View?>(R.id.contentFilterBar)?.visibility = View.GONE
+        findViewById<View?>(R.id.contentHeader)?.visibility = View.GONE
+        findViewById<View?>(R.id.emptyState)?.visibility = View.GONE
 
         val call = if (role == "teacher") {
             RetrofitClient.instance.getSubjects(userId = userId, role = role)
@@ -87,16 +184,11 @@ class MaterialsActivity : BaseActivity() {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
                 if (response.isSuccessful && response.body()?.status == "success") {
                     val subjects = response.body()?.data ?: emptyList()
+                    allSubjects = subjects
                     if (subjects.isEmpty()) {
                         Toast.makeText(this@MaterialsActivity, "لا توجد مواد متاحة", Toast.LENGTH_SHORT).show()
                     } else {
-                        val adapter = ReportSubjectsAdapter(subjects) { sub ->
-                            val subId = sub.subjectId ?: 0
-                            if (subId != 0) {
-                                loadMaterialsForSubject(subId, sub.subjectName ?: "مادة")
-                            }
-                        }
-                        rv.adapter = adapter
+                        renderSubjects()
                     }
                 }
             }
@@ -106,29 +198,44 @@ class MaterialsActivity : BaseActivity() {
         })
     }
 
-    private fun loadMaterialsForSubject(subjectId: Int, subjectName: String) {
+    /** يطبّق فرز نوع المحتوى + يُظهر الحالة الفارغة + يفعّل/يعطّل أزرار الفرز حسب توفّر المحتوى. */
+    private fun renderMaterials() {
+        val byType = { k: String -> allMaterials.filter { materialKind(it) == k } }
+        // فحص وجود محتوى لكل نوع → تعطيل الزر إن لم يوجد.
+        findViewById<com.google.android.material.chip.Chip>(R.id.chipVideo).isEnabled = byType("video").isNotEmpty()
+        findViewById<com.google.android.material.chip.Chip>(R.id.chipPdf).isEnabled = byType("pdf").isNotEmpty()
+        findViewById<com.google.android.material.chip.Chip>(R.id.chipAudio).isEnabled = byType("audio").isNotEmpty()
+
+        val filtered = if (contentFilter.isEmpty()) allMaterials else byType(contentFilter)
+        rv.adapter = MaterialsAdapter(filtered, this@MaterialsActivity)
+        findViewById<View?>(R.id.emptyState)?.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun loadMaterialsForSubject(subjectId: Int, subjectName: String, teacher: String? = null, status: String? = null) {
         currentSubjectId = subjectId
         supportActionBar?.title = "المواد الدراسية المرفوعة"
 
-        // إظهار زر الرفع فقط للأستاذ، ورفع زر الرسائل ليتوضّع فوقه.
-        if (role == "teacher") {
-            fabUpload.visibility = View.VISIBLE
-            findViewById<View?>(R.id.fabMessages)?.translationY = -resources.displayMetrics.density * 70
-        } else {
-            fabUpload.visibility = View.GONE
-        }
+        findViewById<View?>(R.id.filterBar)?.visibility = View.GONE
+        findViewById<View?>(R.id.contentFilterBar)?.visibility = View.VISIBLE
+        findViewById<View?>(R.id.contentHeader)?.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.tvContentTitle).text = cleanSubjectName(subjectName)
+        bindCourseMeta(findViewById(R.id.tvContentTeacher), findViewById(R.id.tvContentStatus), teacher, status)
+        contentFilter = ""
+        findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupContent).clearCheck()
+        // زر الرفع (للأستاذ) يقع فوق زر الدردشات عبر هامشه في التخطيط.
+        fabUpload.visibility = if (role == "teacher") View.VISIBLE else View.GONE
+
+        // أنيميشن دخول للمقرّر
+        rv.alpha = 0f; rv.translationX = rv.width.toFloat().coerceAtLeast(120f)
+        rv.animate().alpha(1f).translationX(0f).setDuration(260).start()
 
         RetrofitClient.instance.getSubjectMaterials(subjectId = subjectId).enqueue(object : Callback<MaterialResponse> {
             override fun onResponse(call: Call<MaterialResponse>, response: Response<MaterialResponse>) {
-                if (response.isSuccessful) {
-                    val materials = response.body()?.data ?: emptyList()
-                    if (materials.isEmpty()) {
-                        Toast.makeText(this@MaterialsActivity, "لا توجد ملفات مرفوعة", Toast.LENGTH_SHORT).show()
-                    }
-                    rv.adapter = MaterialsAdapter(materials, this@MaterialsActivity)
-                }
+                allMaterials = response.body()?.data ?: emptyList()
+                renderMaterials()
             }
             override fun onFailure(call: Call<MaterialResponse>, t: Throwable) {
+                allMaterials = emptyList(); renderMaterials()
                 Toast.makeText(this@MaterialsActivity, "فشل تحميل الملفات", Toast.LENGTH_SHORT).show()
             }
         })
@@ -227,8 +334,16 @@ class MaterialsAdapter(private val list: List<MaterialData>, private val context
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = list[position]
         holder.title.text = item.title
-        holder.info.text = "نوع الملف: ${item.fileType}"
-        holder.status.text = item.uploadedAt
+
+        val typeLabel = when (materialKind(item)) {
+            "video" -> "فيديو"; "pdf" -> "PDF"; "audio" -> "صوتي"; else -> "ملف"
+        }
+        holder.info.text = typeLabel
+        holder.info.visibility = View.VISIBLE
+
+        holder.status.text = item.uploadedAt ?: ""
+        holder.status.visibility = if (item.uploadedAt.isNullOrBlank()) View.GONE else View.VISIBLE
+        holder.status.background = ContextCompat.getDrawable(context, R.drawable.bg_pill)
         holder.status.setTextColor(ContextCompat.getColor(context, R.color.ink_muted))
 
         holder.itemView.setOnClickListener {
