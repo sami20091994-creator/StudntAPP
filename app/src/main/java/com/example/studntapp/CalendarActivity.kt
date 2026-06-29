@@ -29,11 +29,12 @@ class CalendarActivity : BaseActivity() {
     private var userId = 0
 
     private lateinit var rvDaily: RecyclerView
+    private lateinit var rvDayEvents: RecyclerView
     private lateinit var viewDaily: LinearLayout
     private lateinit var viewWeekly: ScrollView
     private lateinit var viewMonthly: ScrollView
-    private lateinit var viewYearly: ScrollView
-    private lateinit var yearContainer: LinearLayout
+    private lateinit var viewYearly: androidx.viewpager2.widget.ViewPager2
+    private lateinit var yearAdapter: YearPagerAdapter
     private lateinit var weeklyGrid: LinearLayout
     private lateinit var monthlyGrid: GridLayout
     private lateinit var layoutNavHeader: LinearLayout
@@ -47,6 +48,8 @@ class CalendarActivity : BaseActivity() {
     private lateinit var tvDayCardWeek: TextView
     private lateinit var calBlock: LinearLayout
     private lateinit var dayCard: androidx.cardview.widget.CardView
+    private lateinit var fabToday: com.google.android.material.floatingactionbutton.FloatingActionButton
+    private lateinit var swipeNav: SwipeNavLayout
 
     private val sdfApi = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
     private val monthFormat = SimpleDateFormat("MMMM yyyy", Locale("ar"))
@@ -69,11 +72,13 @@ class CalendarActivity : BaseActivity() {
         // ربط العناصر
         rvDaily = findViewById(R.id.rvDaily)
         rvDaily.layoutManager = LinearLayoutManager(this)
+        rvDayEvents = findViewById(R.id.rvDayEvents)
+        rvDayEvents.layoutManager = LinearLayoutManager(this)
         viewDaily = findViewById(R.id.viewDaily)
         viewWeekly = findViewById(R.id.viewWeekly)
         viewMonthly = findViewById(R.id.viewMonthly)
         viewYearly = findViewById(R.id.viewYearly)
-        yearContainer = findViewById(R.id.yearContainer)
+        setupYearPager()
         weeklyGrid = findViewById(R.id.weeklyGrid)
         monthlyGrid = findViewById(R.id.monthlyGrid)
         layoutNavHeader = findViewById(R.id.layoutNavHeader)
@@ -99,9 +104,18 @@ class CalendarActivity : BaseActivity() {
         findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { adjustDate(-1) }
         findViewById<ImageButton>(R.id.btnNext).setOnClickListener { adjustDate(1) }
 
-        // تنقّل شهر العرض اليومي (الأسهم تحرّك صفحات الـ ViewPager)
-        findViewById<ImageButton>(R.id.btnDailyPrev).setOnClickListener { monthPager.currentItem = monthPager.currentItem - 1 }
-        findViewById<ImageButton>(R.id.btnDailyNext).setOnClickListener { monthPager.currentItem = monthPager.currentItem + 1 }
+        // سحب أفقي موحّد فوق أي عنصر → تنقّل + انزلاق الصفحة كاملة.
+        swipeNav = findViewById(R.id.swipeNav)
+        swipeNav.onSwipe = { dir ->
+            when (currentViewMode) {
+                "daily" -> shiftDay(dir)
+                "weekly" -> { adjustDate(dir); slideIn(viewWeekly, dir) }
+                // الشهري والسنوي يعتمدان سحب الـViewPager الأصلي.
+            }
+        }
+
+        fabToday = findViewById(R.id.fabToday)
+        fabToday.setOnClickListener { goToToday() }
 
         switchViewMode("monthly")
     }
@@ -118,7 +132,9 @@ class CalendarActivity : BaseActivity() {
 
     private fun switchViewMode(mode: String) {
         currentViewMode = mode
-        
+        // الشهري يعتمد سحب الـViewPager الأصلي؛ بقية الأوضاع تعتمد حاوية السحب الموحّدة.
+        if (::swipeNav.isInitialized) swipeNav.interceptEnabled = mode != "monthly" && mode != "yearly"
+
         val btnD = findViewById<TextView>(R.id.btnDaily)
         val btnW = findViewById<TextView>(R.id.btnWeekly)
         val btnM = findViewById<TextView>(R.id.btnMonthly)
@@ -141,11 +157,12 @@ class CalendarActivity : BaseActivity() {
                     background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_active)
                     setTextColor(Color.WHITE)
                 }
-                // يومي: أحداث اليوم فقط (بطاقة اليوم + القائمة، بدون تقويم).
+                // يومي: بطاقة اليوم الكبيرة والأحداث بداخلها (بلا تقويم ولا قائمة خارجية).
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.GONE
                 dayCard.visibility = View.VISIBLE
-                tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+                tvDailyTitle.visibility = View.GONE
+                rvDaily.visibility = View.GONE
             }
             "weekly" -> {
                 btnW.apply { 
@@ -164,6 +181,8 @@ class CalendarActivity : BaseActivity() {
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.VISIBLE
                 dayCard.visibility = View.GONE
+                tvDailyTitle.visibility = View.VISIBLE
+                rvDaily.visibility = View.VISIBLE
                 tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
             }
             "yearly" -> {
@@ -173,14 +192,7 @@ class CalendarActivity : BaseActivity() {
                 }
                 viewYearly.visibility = View.VISIBLE
                 val year = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }.get(Calendar.YEAR)
-                renderYearView(this, yearContainer, year) { y, mIdx ->
-                    val c = Calendar.getInstance().apply { clear(); set(y, mIdx, 1) }
-                    selectedDateStr = sdfApi.format(c.time)
-                    monthAdapter.selectedDate = selectedDateStr
-                    monthPager.setCurrentItem(monthAdapter.pageForDate(selectedDateStr), false)
-                    switchViewMode("daily")
-                    loadSchedule()
-                }
+                viewYearly.setCurrentItem(yearAdapter.pageForYear(year), false)
             }
         }
         updateHeaderTitles()
@@ -196,7 +208,25 @@ class CalendarActivity : BaseActivity() {
         }
     }
 
+    /** يُظهر FAB العودة لليوم فقط حين لا يكون "اليوم" ظاهراً في العرض الحالي. */
+    private fun updateTodayFab() {
+        if (!::fabToday.isInitialized) return
+        val t = Calendar.getInstance()
+        val s = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        val todayVisible = when (currentViewMode) {
+            "weekly" -> t.get(Calendar.YEAR) == s.get(Calendar.YEAR) && t.get(Calendar.WEEK_OF_YEAR) == s.get(Calendar.WEEK_OF_YEAR)
+            "yearly" -> t.get(Calendar.YEAR) == yearAdapter.yearOf(viewYearly.currentItem)
+            "monthly" -> { // الشهر المعروض في الـpager (لا التاريخ المحدّد الثابت)
+                val mc = monthAdapter.monthCal(monthPager.currentItem)
+                t.get(Calendar.YEAR) == mc.get(Calendar.YEAR) && t.get(Calendar.MONTH) == mc.get(Calendar.MONTH)
+            }
+            else -> selectedDateStr == sdfApi.format(Date()) // daily
+        }
+        fabToday.visibility = if (todayVisible) View.GONE else View.VISIBLE
+    }
+
     private fun loadSchedule() {
+        updateTodayFab()
         // في "شهري" أيضاً تعرض القائمة السفلية حصص اليوم المحدّد (نفس "يومي").
         val fetchMode = if (currentViewMode == "monthly") "daily" else currentViewMode
         RetrofitClient.instance.getFullScheduleFiltered(
@@ -204,11 +234,10 @@ class CalendarActivity : BaseActivity() {
         ).enqueue(object : Callback<List<ScheduleData>> {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
                 val list = response.body() ?: emptyList()
+                val sorted = list.sortedBy { it.startTime }
                 when (currentViewMode) {
-                    "daily", "monthly" -> {
-                        val sorted = list.sortedBy { it.startTime }
-                        rvDaily.adapter = CalendarAdapter(sorted, selectedDateStr)
-                    }
+                    "daily" -> rvDayEvents.adapter = CalendarAdapter(sorted, selectedDateStr)
+                    "monthly" -> rvDaily.adapter = CalendarAdapter(sorted, selectedDateStr)
                     "weekly" -> renderWeeklyGrid(list)
                 }
             }
@@ -228,8 +257,8 @@ class CalendarActivity : BaseActivity() {
         }
         monthAdapter.selectedDate = selectedDateStr
         monthPager.adapter = monthAdapter
-        // تعطيل السحب الأفقي بين الأشهر؛ التنقّل عبر السهمين فقط (لا يتعارض مع اختيار الأيام).
-        monthPager.isUserInputEnabled = false
+        // التنقّل بين الأشهر بالسحب يمين/يسار.
+        monthPager.isUserInputEnabled = true
         monthPager.setCurrentItem(MonthPageAdapter.CENTER, false)
         tvDailyMonth.text = monthFormat.format(sdfApi.parse(selectedDateStr)!!)
         monthPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
@@ -237,6 +266,7 @@ class CalendarActivity : BaseActivity() {
                 val cal = monthAdapter.monthCal(position)
                 tvDailyMonth.text = monthFormat.format(cal.time)
                 fetchMonthEvents(monthAdapter.ymOf(position))
+                updateTodayFab() // الشهر المعروض تغيّر → حدّث ظهور زر اليوم
             }
         })
         fetchMonthEvents(monthAdapter.ymOf(MonthPageAdapter.CENTER))
@@ -246,36 +276,128 @@ class CalendarActivity : BaseActivity() {
     private val calExpandedH get() = (380 * resources.displayMetrics.density).toInt()
     private val calCollapsedH get() = (110 * resources.displayMetrics.density).toInt()
 
-    /** مقبض الطيّ/التوسعة: سحب لأعلى = أسبوع، لأسفل = شهر؛ والنقر يبدّل. */
+    /** مقبض الطيّ/التوسعة: السحب يتبع الإصبع مباشرة (مرن)، وعند الإفلات يستقرّ لأقرب حالة. */
     private fun setupCalCollapse() {
         val handle = findViewById<View>(R.id.calExpandHandle)
-        val gd = android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
-            override fun onDown(e: android.view.MotionEvent) = true
-            override fun onScroll(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, dx: Float, dy: Float): Boolean {
-                // استجابة فورية: dy>0 سحب لأعلى = طيّ، dy<0 سحب لأسفل = توسعة.
-                if (dy > 12 && monthAdapter.expanded) setCalExpanded(false)
-                else if (dy < -12 && !monthAdapter.expanded) setCalExpanded(true)
-                return true
+        var startY = 0f
+        var startH = 0
+        var dragged = false
+        handle.setOnTouchListener { _, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startY = ev.rawY; startH = monthPager.height; dragged = false
+                    // أظهر كل الأسابيع أثناء السحب لتكون الحركة مرئية.
+                    if (!monthAdapter.expanded) { monthAdapter.expanded = true; monthAdapter.notifyDataSetChanged() }
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val nh = (startH + (ev.rawY - startY)).toInt().coerceIn(calCollapsedH, calExpandedH)
+                    if (Math.abs(ev.rawY - startY) > 4) dragged = true
+                    monthPager.layoutParams = monthPager.layoutParams.apply { height = nh }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    val mid = (calCollapsedH + calExpandedH) / 2
+                    if (!dragged) setCalExpanded(!monthAdapter.expanded) // نقر = تبديل
+                    else setCalExpanded(monthPager.height > mid)        // إفلات = استقرار لأقرب
+                    true
+                }
+                else -> false
             }
-            override fun onSingleTapUp(e: android.view.MotionEvent): Boolean { setCalExpanded(!monthAdapter.expanded); return true }
-        })
-        handle.setOnTouchListener { _, ev -> gd.onTouchEvent(ev); true }
+        }
     }
 
     private fun setCalExpanded(expand: Boolean) {
-        if (monthAdapter.expanded == expand) return
         monthAdapter.expanded = expand
         monthAdapter.notifyDataSetChanged()
         val from = monthPager.layoutParams.height
         val to = if (expand) calExpandedH else calCollapsedH
+        if (from == to) return
         android.animation.ValueAnimator.ofInt(from, to).apply {
-            duration = 260
+            duration = 220
             addUpdateListener {
                 monthPager.layoutParams = monthPager.layoutParams.apply { height = it.animatedValue as Int }
             }
             start()
         }
     }
+
+    /** تنقّل اليوم (±1) عند السحب الأفقي في القائمة. */
+    private fun shiftDay(dir: Int) {
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        cal.add(Calendar.DAY_OF_MONTH, dir)
+        selectedDateStr = sdfApi.format(cal.time)
+        syncToSelectedDate(smooth = false)
+        slideIn(viewDaily, dir) // انزلاق الصفحة كاملة
+    }
+
+    /** انزلاق محتوى عند التنقّل بالسحب (إحساس تغيّر الصفحة). */
+    private fun slideIn(v: View, dir: Int, frac: Float = 0.35f) {
+        val w = (if (v.width > 0) v.width else resources.displayMetrics.widthPixels).toFloat()
+        v.translationX = dir * w * frac
+        v.alpha = 0.3f
+        v.animate().translationX(0f).alpha(1f).setDuration(if (frac >= 1f) 320 else 280).start()
+    }
+
+    /** العودة لليوم الحالي بحركة سلسة (في كل الأوضاع). */
+    private fun goToToday() {
+        val dir = if (sdfApi.format(Date()) > selectedDateStr) 1 else -1
+        selectedDateStr = sdfApi.format(Date())
+        when (currentViewMode) {
+            "yearly" -> {
+                val y = Calendar.getInstance().get(Calendar.YEAR)
+                val cur = viewYearly.currentItem
+                val page = yearAdapter.pageForYear(y)
+                if (Math.abs(cur - page) > 1) viewYearly.setCurrentItem(if (page > cur) page - 1 else page + 1, false)
+                viewYearly.post { viewYearly.setCurrentItem(page, true) } // انزلاق أصلي سلس
+                updateTodayFab()
+            }
+            "weekly" -> { syncToSelectedDate(smooth = true); slideIn(viewWeekly, dir, 1f) }
+            else -> { syncToSelectedDate(smooth = true); slideIn(viewDaily, dir, 1f) }
+        }
+    }
+
+    /** يزامن التقويم + البطاقة + القائمة مع التاريخ المحدّد. */
+    private fun syncToSelectedDate(smooth: Boolean = false) {
+        monthAdapter.selectedDate = selectedDateStr
+        smoothPagerTo(monthAdapter.pageForDate(selectedDateStr), smooth)
+        tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+        updateDayCard()
+        loadSchedule()
+    }
+
+    /** ينقل الـpager للصفحة المطلوبة. عند smooth: قفزة فورية لجوار الهدف ثم انزلاق خطوة واحدة (سلس بلا تجمّد). */
+    private fun smoothPagerTo(page: Int, smooth: Boolean) {
+        val cur = monthPager.currentItem
+        if (cur == page) { monthAdapter.notifyDataSetChanged(); return }
+        if (!smooth) { monthPager.setCurrentItem(page, false); return }
+        if (Math.abs(cur - page) > 1) {
+            monthPager.setCurrentItem(if (page > cur) page - 1 else page + 1, false)
+        }
+        monthPager.post { monthPager.setCurrentItem(page, true) }
+    }
+
+    /** إعداد العرض السنوي كـViewPager2 (سحب أصلي + انزلاق بطاقة). */
+    private fun setupYearPager() {
+        yearAdapter = YearPagerAdapter(this) { y, m -> openMonth(y, m) }
+        viewYearly.adapter = yearAdapter
+        viewYearly.isUserInputEnabled = true
+        viewYearly.offscreenPageLimit = 1 // ابنِ السنة المجاورة مسبقاً ليبقى انزلاق الـfling سلساً
+        viewYearly.setCurrentItem(YearPagerAdapter.CENTER, false)
+        viewYearly.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) { updateTodayFab() }
+        })
+    }
+
+    /** يفتح شهراً مختاراً من السنة في العرض الشهري. */
+    private fun openMonth(year: Int, monthIdx: Int) {
+        val c = Calendar.getInstance().apply { clear(); set(year, monthIdx, 1) }
+        selectedDateStr = sdfApi.format(c.time)
+        monthAdapter.selectedDate = selectedDateStr
+        monthPager.setCurrentItem(monthAdapter.pageForDate(selectedDateStr), false)
+        switchViewMode("monthly")
+    }
+
 
     /** يحدّث بطاقة اليوم المحدّد (السنة/الشهر + الرقم الكبير + اسم اليوم). */
     private fun updateDayCard() {

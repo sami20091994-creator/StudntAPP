@@ -27,11 +27,12 @@ class CalendarFragment : Fragment() {
     private var userId = 0
 
     private lateinit var rvDaily: RecyclerView
+    private lateinit var rvDayEvents: RecyclerView
     private lateinit var viewDaily: LinearLayout
     private lateinit var viewWeekly: ScrollView
     private lateinit var viewMonthly: ScrollView
-    private lateinit var viewYearly: ScrollView
-    private lateinit var yearContainer: LinearLayout
+    private lateinit var viewYearly: androidx.viewpager2.widget.ViewPager2
+    private lateinit var yearAdapter: YearPagerAdapter
     private lateinit var weeklyGrid: LinearLayout
     private lateinit var monthlyGrid: GridLayout
     private lateinit var layoutNavHeader: LinearLayout
@@ -45,6 +46,8 @@ class CalendarFragment : Fragment() {
     private lateinit var tvDayCardWeek: TextView
     private lateinit var calBlock: LinearLayout
     private lateinit var dayCard: androidx.cardview.widget.CardView
+    private lateinit var fabToday: com.google.android.material.floatingactionbutton.FloatingActionButton
+    private lateinit var swipeNav: SwipeNavLayout
     private lateinit var root: View
 
     private val sdfApi = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
@@ -75,11 +78,13 @@ class CalendarFragment : Fragment() {
 
         rvDaily = view.findViewById(R.id.rvDaily)
         rvDaily.layoutManager = LinearLayoutManager(ctx)
+        rvDayEvents = view.findViewById(R.id.rvDayEvents)
+        rvDayEvents.layoutManager = LinearLayoutManager(ctx)
         viewDaily = view.findViewById(R.id.viewDaily)
         viewWeekly = view.findViewById(R.id.viewWeekly)
         viewMonthly = view.findViewById(R.id.viewMonthly)
         viewYearly = view.findViewById(R.id.viewYearly)
-        yearContainer = view.findViewById(R.id.yearContainer)
+        setupYearPager()
         weeklyGrid = view.findViewById(R.id.weeklyGrid)
         monthlyGrid = view.findViewById(R.id.monthlyGrid)
         layoutNavHeader = view.findViewById(R.id.layoutNavHeader)
@@ -102,10 +107,30 @@ class CalendarFragment : Fragment() {
 
         view.findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { adjustDate(-1) }
         view.findViewById<ImageButton>(R.id.btnNext).setOnClickListener { adjustDate(1) }
-        view.findViewById<ImageButton>(R.id.btnDailyPrev).setOnClickListener { monthPager.currentItem = monthPager.currentItem - 1 }
-        view.findViewById<ImageButton>(R.id.btnDailyNext).setOnClickListener { monthPager.currentItem = monthPager.currentItem + 1 }
+
+        swipeNav = view.findViewById(R.id.swipeNav)
+        swipeNav.onSwipe = { dir ->
+            when (currentViewMode) {
+                "daily" -> shiftDay(dir)
+                "weekly" -> { adjustDate(dir); slideIn(viewWeekly, dir) }
+                // الشهري والسنوي يعتمدان سحب الـViewPager الأصلي.
+            }
+        }
+
+        fabToday = requireActivity().findViewById(R.id.fabToday)
+        fabToday.setOnClickListener { goToToday() }
 
         switchViewMode("monthly")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::fabToday.isInitialized) { fabToday.setOnClickListener { goToToday() }; updateTodayFab() }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::fabToday.isInitialized) fabToday.visibility = View.GONE // لا يتسرّب لبقية التبويبات
     }
 
     private fun setupMonthPager() {
@@ -117,13 +142,14 @@ class CalendarFragment : Fragment() {
         }
         monthAdapter.selectedDate = selectedDateStr
         monthPager.adapter = monthAdapter
-        monthPager.isUserInputEnabled = false
+        monthPager.isUserInputEnabled = true
         monthPager.setCurrentItem(MonthPageAdapter.CENTER, false)
         tvDailyMonth.text = monthFormat.format(sdfApi.parse(selectedDateStr)!!)
         monthPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 tvDailyMonth.text = monthFormat.format(monthAdapter.monthCal(position).time)
                 fetchMonthEvents(monthAdapter.ymOf(position))
+                updateTodayFab()
             }
         })
         fetchMonthEvents(monthAdapter.ymOf(MonthPageAdapter.CENTER))
@@ -135,31 +161,115 @@ class CalendarFragment : Fragment() {
 
     private fun setupCalCollapse() {
         val handle = root.findViewById<View>(R.id.calExpandHandle)
-        val gd = android.view.GestureDetector(ctx, object : android.view.GestureDetector.SimpleOnGestureListener() {
-            override fun onDown(e: android.view.MotionEvent) = true
-            override fun onScroll(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, dx: Float, dy: Float): Boolean {
-                if (dy > 12 && monthAdapter.expanded) setCalExpanded(false)
-                else if (dy < -12 && !monthAdapter.expanded) setCalExpanded(true)
-                return true
+        var startY = 0f
+        var startH = 0
+        var dragged = false
+        handle.setOnTouchListener { _, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startY = ev.rawY; startH = monthPager.height; dragged = false
+                    if (!monthAdapter.expanded) { monthAdapter.expanded = true; monthAdapter.notifyDataSetChanged() }
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val nh = (startH + (ev.rawY - startY)).toInt().coerceIn(calCollapsedH, calExpandedH)
+                    if (Math.abs(ev.rawY - startY) > 4) dragged = true
+                    monthPager.layoutParams = monthPager.layoutParams.apply { height = nh }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    val mid = (calCollapsedH + calExpandedH) / 2
+                    if (!dragged) setCalExpanded(!monthAdapter.expanded)
+                    else setCalExpanded(monthPager.height > mid)
+                    true
+                }
+                else -> false
             }
-            override fun onSingleTapUp(e: android.view.MotionEvent): Boolean { setCalExpanded(!monthAdapter.expanded); return true }
-        })
-        handle.setOnTouchListener { _, ev -> gd.onTouchEvent(ev); true }
+        }
     }
 
     private fun setCalExpanded(expand: Boolean) {
-        if (monthAdapter.expanded == expand) return
         monthAdapter.expanded = expand
         monthAdapter.notifyDataSetChanged()
         val from = monthPager.layoutParams.height
         val to = if (expand) calExpandedH else calCollapsedH
+        if (from == to) return
         android.animation.ValueAnimator.ofInt(from, to).apply {
-            duration = 260
+            duration = 220
             addUpdateListener {
                 monthPager.layoutParams = monthPager.layoutParams.apply { height = it.animatedValue as Int }
             }
             start()
         }
+    }
+
+    private fun shiftDay(dir: Int) {
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        cal.add(Calendar.DAY_OF_MONTH, dir)
+        selectedDateStr = sdfApi.format(cal.time)
+        syncToSelectedDate(smooth = false)
+        slideIn(viewDaily, dir)
+    }
+
+    private fun slideIn(v: View, dir: Int, frac: Float = 0.35f) {
+        val w = (if (v.width > 0) v.width else resources.displayMetrics.widthPixels).toFloat()
+        v.translationX = dir * w * frac
+        v.alpha = 0.3f
+        v.animate().translationX(0f).alpha(1f).setDuration(if (frac >= 1f) 320 else 280).start()
+    }
+
+    private fun goToToday() {
+        val dir = if (sdfApi.format(Date()) > selectedDateStr) 1 else -1
+        selectedDateStr = sdfApi.format(Date())
+        when (currentViewMode) {
+            "yearly" -> {
+                val y = Calendar.getInstance().get(Calendar.YEAR)
+                val cur = viewYearly.currentItem
+                val page = yearAdapter.pageForYear(y)
+                if (Math.abs(cur - page) > 1) viewYearly.setCurrentItem(if (page > cur) page - 1 else page + 1, false)
+                viewYearly.post { viewYearly.setCurrentItem(page, true) }
+                updateTodayFab()
+            }
+            "weekly" -> { syncToSelectedDate(smooth = true); slideIn(viewWeekly, dir, 1f) }
+            else -> { syncToSelectedDate(smooth = true); slideIn(viewDaily, dir, 1f) }
+        }
+    }
+
+    private fun syncToSelectedDate(smooth: Boolean = false) {
+        monthAdapter.selectedDate = selectedDateStr
+        smoothPagerTo(monthAdapter.pageForDate(selectedDateStr), smooth)
+        tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
+        updateDayCard()
+        loadSchedule()
+    }
+
+    private fun smoothPagerTo(page: Int, smooth: Boolean) {
+        val cur = monthPager.currentItem
+        if (cur == page) { monthAdapter.notifyDataSetChanged(); return }
+        if (!smooth) { monthPager.setCurrentItem(page, false); return }
+        if (Math.abs(cur - page) > 1) {
+            monthPager.setCurrentItem(if (page > cur) page - 1 else page + 1, false)
+        }
+        monthPager.post { monthPager.setCurrentItem(page, true) }
+    }
+
+    private fun setupYearPager() {
+        yearAdapter = YearPagerAdapter(ctx) { y, m -> openMonth(y, m) }
+        viewYearly.adapter = yearAdapter
+        viewYearly.isUserInputEnabled = true
+        viewYearly.offscreenPageLimit = 1
+        viewYearly.setCurrentItem(YearPagerAdapter.CENTER, false)
+        viewYearly.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) { updateTodayFab() }
+        })
+    }
+
+    private fun openMonth(year: Int, monthIdx: Int) {
+        val c = Calendar.getInstance().apply { clear(); set(year, monthIdx, 1) }
+        selectedDateStr = sdfApi.format(c.time)
+        monthAdapter.selectedDate = selectedDateStr
+        monthPager.setCurrentItem(monthAdapter.pageForDate(selectedDateStr), false)
+        switchViewMode("monthly")
     }
 
     private fun updateDayCard() {
@@ -199,6 +309,7 @@ class CalendarFragment : Fragment() {
 
     private fun switchViewMode(mode: String) {
         currentViewMode = mode
+        if (::swipeNav.isInitialized) swipeNav.interceptEnabled = mode != "monthly" && mode != "yearly"
         val btnD = root.findViewById<TextView>(R.id.btnDaily)
         val btnW = root.findViewById<TextView>(R.id.btnWeekly)
         val btnM = root.findViewById<TextView>(R.id.btnMonthly)
@@ -220,7 +331,8 @@ class CalendarFragment : Fragment() {
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.GONE
                 dayCard.visibility = View.VISIBLE
-                tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
+                tvDailyTitle.visibility = View.GONE
+                rvDaily.visibility = View.GONE
             }
             "weekly" -> {
                 btnW.apply { background = ContextCompat.getDrawable(ctx, R.drawable.bg_toggle_active); setTextColor(col(R.color.white)) }
@@ -232,20 +344,15 @@ class CalendarFragment : Fragment() {
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.VISIBLE
                 dayCard.visibility = View.GONE
+                tvDailyTitle.visibility = View.VISIBLE
+                rvDaily.visibility = View.VISIBLE
                 tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
             }
             "yearly" -> {
                 btnY.apply { background = ContextCompat.getDrawable(ctx, R.drawable.bg_toggle_active); setTextColor(col(R.color.white)) }
                 viewYearly.visibility = View.VISIBLE
                 val year = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }.get(Calendar.YEAR)
-                renderYearView(ctx, yearContainer, year) { y, mIdx ->
-                    val c = Calendar.getInstance().apply { clear(); set(y, mIdx, 1) }
-                    selectedDateStr = sdfApi.format(c.time)
-                    monthAdapter.selectedDate = selectedDateStr
-                    monthPager.setCurrentItem(monthAdapter.pageForDate(selectedDateStr), false)
-                    switchViewMode("daily")
-                    loadSchedule()
-                }
+                viewYearly.setCurrentItem(yearAdapter.pageForYear(year), false)
             }
         }
         updateHeaderTitles()
@@ -258,7 +365,24 @@ class CalendarFragment : Fragment() {
         else if (currentViewMode == "monthly") tvPeriodName.text = monthFormat.format(cal.time)
     }
 
+    private fun updateTodayFab() {
+        if (!::fabToday.isInitialized) return
+        val t = Calendar.getInstance()
+        val s = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        val todayVisible = when (currentViewMode) {
+            "weekly" -> t.get(Calendar.YEAR) == s.get(Calendar.YEAR) && t.get(Calendar.WEEK_OF_YEAR) == s.get(Calendar.WEEK_OF_YEAR)
+            "yearly" -> t.get(Calendar.YEAR) == yearAdapter.yearOf(viewYearly.currentItem)
+            "monthly" -> {
+                val mc = monthAdapter.monthCal(monthPager.currentItem)
+                t.get(Calendar.YEAR) == mc.get(Calendar.YEAR) && t.get(Calendar.MONTH) == mc.get(Calendar.MONTH)
+            }
+            else -> selectedDateStr == sdfApi.format(Date())
+        }
+        fabToday.visibility = if (todayVisible) View.GONE else View.VISIBLE
+    }
+
     private fun loadSchedule() {
+        updateTodayFab()
         val fetchMode = if (currentViewMode == "monthly") "daily" else currentViewMode
         RetrofitClient.instance.getFullScheduleFiltered(
             userId = userId, role = role, date = selectedDateStr, viewMode = fetchMode
@@ -266,8 +390,10 @@ class CalendarFragment : Fragment() {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
                 if (!isAdded) return
                 val list = response.body() ?: emptyList()
+                val sorted = list.sortedBy { it.startTime }
                 when (currentViewMode) {
-                    "daily", "monthly" -> rvDaily.adapter = CalendarAdapter(list.sortedBy { it.startTime }, selectedDateStr)
+                    "daily" -> rvDayEvents.adapter = CalendarAdapter(sorted, selectedDateStr)
+                    "monthly" -> rvDaily.adapter = CalendarAdapter(sorted, selectedDateStr)
                     "weekly" -> renderWeeklyGrid(list)
                 }
             }

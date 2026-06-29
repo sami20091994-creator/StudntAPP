@@ -22,6 +22,14 @@ fun renderYearView(ctx: Context, container: LinearLayout, year: Int, onMonthClic
     val monthNames = arrayOf("يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر")
     val today = Calendar.getInstance()
 
+    // عنوان السنة (اسحب يمين/يسار لتغيير السنة).
+    container.addView(TextView(ctx).apply {
+        text = "‹   $year   ›"
+        textSize = 22f; setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER
+        setTextColor(primary); setPadding(0, px(6), 0, px(10))
+        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+    })
+
     var row: LinearLayout? = null
     for (m in 0 until 12) {
         if (m % 3 == 0) {

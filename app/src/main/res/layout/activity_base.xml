@@ -204,7 +204,44 @@
             android:src="@drawable/ic_nav_messages"
             app:backgroundTint="?attr/colorPrimary"
             app:elevation="10dp"
+            app:useCompatPadding="false"
             app:tint="@color/white" />
+
+        <!-- زر العودة لليوم: ابن مصغّر، منتصف أعلى زر الرسائل بمسافة سطر -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabToday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/fabMessages"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="اليوم"
+            android:src="@drawable/ic_today_filled"
+            android:visibility="gone"
+            app:backgroundTint="?attr/colorPrimary"
+            app:elevation="10dp"
+            app:fabSize="mini"
+            app:tint="@color/white"
+            app:useCompatPadding="false" />
+
+        <!-- زر رفع الملفات (للمدرّس): ابن مصغّر، منتصف أعلى زر الرسائل بمسافة سطر -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabUpload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/fabMessages"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="رفع ملف"
+            android:src="@drawable/ic_upload_file"
+            android:visibility="gone"
+            app:backgroundTint="@color/accent_gold"
+            app:elevation="10dp"
+            app:fabSize="mini"
+            app:tint="@color/white"
+            app:useCompatPadding="false" />
 
     </RelativeLayout>
 

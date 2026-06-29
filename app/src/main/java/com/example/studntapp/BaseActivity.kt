@@ -731,8 +731,21 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
             finish()
             return
         }
-        // 3) الرئيسية أو الشاشات الفرعية: رجوع عادي.
+        // 3) النافذة الرئيسية (DailyReportActivity): تأكيد الخروج بضغط رجوع مرتين خلال ثانيتين.
+        if (this is DailyReportActivity) {
+            if (System.currentTimeMillis() - backPressedTime < 2000) {
+                super.onBackPressed()
+                overridePendingTransition(R.anim.slide_in_back, R.anim.slide_out_back)
+            } else {
+                backPressedTime = System.currentTimeMillis()
+                android.widget.Toast.makeText(this, "اضغط رجوع مرة أخرى للخروج", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        // 4) الشاشات الفرعية: رجوع عادي.
         super.onBackPressed()
         overridePendingTransition(R.anim.slide_in_back, R.anim.slide_out_back)
     }
+
+    private var backPressedTime = 0L
 }

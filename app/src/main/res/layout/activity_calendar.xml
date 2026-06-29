@@ -96,8 +96,8 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp"
             android:contentDescription="السابق"
+            android:padding="8dp"
             android:src="@drawable/ic_chevron_right"
             app:tint="?attr/colorPrimary" />
 
@@ -118,13 +118,14 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp"
             android:contentDescription="التالي"
+            android:padding="8dp"
             android:src="@drawable/ic_chevron_left"
             app:tint="?attr/colorPrimary" />
     </LinearLayout>
 
-    <FrameLayout
+    <com.example.studntapp.SwipeNavLayout
+        android:id="@+id/swipeNav"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -142,7 +143,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-            <!-- رأس الشهر: السابق/التالي + اسم الشهر -->
+            <!-- اسم الشهر (التنقّل بالسحب يمين/يسار) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -150,17 +151,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="6dp">
-
-                <ImageButton
-                    android:id="@+id/btnDailyPrev"
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="السابق"
-                    android:padding="9dp"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="?attr/colorPrimary" />
+                android:paddingVertical="10dp">
 
                 <TextView
                     android:id="@+id/tvDailyMonth"
@@ -171,16 +162,6 @@
                     android:textColor="?attr/colorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/btnDailyNext"
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="التالي"
-                    android:padding="9dp"
-                    android:src="@drawable/ic_chevron_left"
-                    app:tint="?attr/colorPrimary" />
             </LinearLayout>
 
             <!-- تقويم شهري قابل للتمرير الأفقي بين الأشهر، بنقاط أحداث -->
@@ -209,53 +190,83 @@
             </LinearLayout>
             <!-- نهاية كتلة التقويم -->
 
-            <!-- بطاقة اليوم المحدّد (تظهر في وضع "يومي" فقط) -->
+            <!-- بطاقة اليوم المحدّد: كبيرة + الأحداث بداخلها (وضع "يومي" فقط) -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/dayCard"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:layout_marginHorizontal="12dp"
                 android:layout_marginTop="10dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="@color/surface"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="2dp">
+                app:cardCornerRadius="22dp"
+                app:cardElevation="3dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="18dp">
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvDayCardYM"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/ink_muted"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/tvDayCardNum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/ink"
+                                android:textSize="58sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <TextView
-                            android:id="@+id/tvDayCardYM"
+                            android:id="@+id/tvDayCardWeek"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/ink_muted"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/tvDayCardNum"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/ink"
-                            android:textSize="42sp"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="20sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="14dp"
+                        android:background="@color/line" />
+
                     <TextView
-                        android:id="@+id/tvDayCardWeek"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:text="حصص اليوم"
                         android:textColor="?attr/colorPrimary"
-                        android:textSize="18sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvDayEvents"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="8dp"
+                        android:clipToPadding="false" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -279,31 +290,24 @@
                 android:paddingBottom="20dp" />
         </LinearLayout>
 
-        <!-- 2. العرض الأسبوعي (جدول أوقات وأيام قابل للسحب أفقياً وعمودياً) -->
+        <!-- 2. العرض الأسبوعي (تنقّل الأسابيع بالسحب يمين/يسار) -->
         <ScrollView
             android:id="@+id/viewWeekly"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/background_light"
             android:fillViewport="true"
+            android:layoutDirection="rtl"
             android:visibility="gone">
 
-            <HorizontalScrollView
+            <LinearLayout
+                android:id="@+id/weeklyGrid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fillViewport="true"
-                android:layoutDirection="rtl">
-
-                <LinearLayout
-                    android:id="@+id/weeklyGrid"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="8dp">
-                    <!-- سيتم توليده برمجياً -->
-                </LinearLayout>
-
-            </HorizontalScrollView>
+                android:orientation="horizontal"
+                android:padding="8dp">
+                <!-- سيتم توليده برمجياً -->
+            </LinearLayout>
         </ScrollView>
 
         <!-- 3. العرض الشهري (شبكة 7 أيام) -->
@@ -320,28 +324,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:columnCount="7"
-                android:padding="4dp"
-                android:layoutDirection="rtl">
+                android:layoutDirection="rtl"
+                android:padding="4dp">
                 <!-- سيتم توليده برمجياً -->
             </GridLayout>
         </ScrollView>
 
-        <!-- 4. العرض السنوي (12 شهراً مصغّرة) -->
-        <ScrollView
+        <!-- 4. العرض السنوي: ViewPager2 (سحب أصلي موثوق + انزلاق بطاقة) -->
+        <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/viewYearly"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/canvas"
-            android:fillViewport="true"
-            android:visibility="gone">
+            android:visibility="gone" />
 
-            <LinearLayout
-                android:id="@+id/yearContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp" />
-        </ScrollView>
-
-    </FrameLayout>
+    </com.example.studntapp.SwipeNavLayout>
 </LinearLayout>

@@ -61,7 +61,7 @@ class MaterialsFragment : Fragment(), BackInterceptor {
         userId = prefs.getInt("USER_ID", 0)
 
         rv = view.findViewById(R.id.rvSubjects)
-        fabUpload = view.findViewById(R.id.fabUpload)
+        fabUpload = requireActivity().findViewById(R.id.fabUpload)
         rv.layoutManager = LinearLayoutManager(ctx)
         fabUpload.setOnClickListener { selectFileToUpload() }
 
@@ -182,6 +182,19 @@ class MaterialsFragment : Fragment(), BackInterceptor {
                 Toast.makeText(requireContext(), "فشل تحميل الملفات", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::fabUpload.isInitialized) {
+            fabUpload.setOnClickListener { selectFileToUpload() }
+            fabUpload.visibility = if (role == "teacher") View.VISIBLE else View.GONE
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::fabUpload.isInitialized) fabUpload.visibility = View.GONE // لا يتسرّب لبقية التبويبات
     }
 
     private fun selectFileToUpload() {

@@ -211,18 +211,6 @@
             </LinearLayout>
         </FrameLayout>
     </LinearLayout>
-
-    <!-- زر رفع الملفات يقع فوق زر الدردشات -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabUpload"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="168dp"
-        android:src="@drawable/ic_upload_file"
-        android:visibility="gone"
-        app:backgroundTint="@color/accent_gold"
-        app:tint="?attr/colorPrimary" />
+    <!-- fabUpload نُقل إلى activity_base ليُحاذى زر الرسائل بدقّة -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
