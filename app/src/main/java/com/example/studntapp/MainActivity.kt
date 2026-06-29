@@ -204,26 +204,26 @@ class MainActivity : AppCompatActivity() {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { btnLogin.performClick(); true } else false
         }
 
-        // تمركز الحقل المختار بوضوح فوق الكيبورد وسط المساحة المرئية.
+        // إظهار الحقل المختار فوق الكيبورد (تمرير للأعلى بقدر الحاجة فقط، بلا فراغ).
         val scroll = findViewById<android.widget.ScrollView>(R.id.scrollLogin)
-        fun centerField(field: View) {
+        val gap = (24 * resources.displayMetrics.density).toInt()
+        fun revealField(field: View) {
             val r = android.graphics.Rect()
             field.getDrawingRect(r)
             scroll.offsetDescendantRectToMyCoords(field, r)
-            val target = r.top + field.height / 2 - scroll.height / 2
-            scroll.smoothScrollTo(0, target.coerceAtLeast(0))
+            val needTop = r.bottom + gap - scroll.height
+            if (needTop > scroll.scrollY) scroll.smoothScrollTo(0, needTop)
         }
-        val centerOnFocus = { field: View -> scroll.postDelayed({ centerField(field) }, 280) }
-        etPhone.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
-        etPassword.setOnFocusChangeListener { v, has -> if (has) centerOnFocus(v) }
-        etPhone.setOnClickListener { centerOnFocus(etPhone) }
-        etPassword.setOnClickListener { centerOnFocus(etPassword) }
-        // إعادة التمركز فور تقلّص الـ ScrollView (ظهور الكيبورد) على الحقل المركّز حالياً.
+        val onFocus = { field: View -> scroll.postDelayed({ revealField(field) }, 280) }
+        etPhone.setOnFocusChangeListener { v, has -> if (has) onFocus(v) }
+        etPassword.setOnFocusChangeListener { v, has -> if (has) onFocus(v) }
+        etPhone.setOnClickListener { onFocus(etPhone) }
+        etPassword.setOnClickListener { onFocus(etPassword) }
+        // إعادة الإظهار فور تقلّص الـ ScrollView (ظهور الكيبورد).
         scroll.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            val shrunk = (bottom - top) < (oldBottom - oldTop)
-            if (shrunk) {
+            if ((bottom - top) < (oldBottom - oldTop)) {
                 val f = currentFocus
-                if (f === etPhone || f === etPassword) scroll.post { centerField(f!!) }
+                if (f === etPhone || f === etPassword) scroll.post { revealField(f!!) }
             }
         }
 
