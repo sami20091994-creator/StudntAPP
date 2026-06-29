@@ -30,9 +30,11 @@ class MonthPageAdapter(
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
     private val ymf = SimpleDateFormat("yyyy-MM", Locale.ENGLISH)
-    private val eventsByMonth = HashMap<String, Set<String>>()
+    // ym -> (date -> عناوين الأحداث)
+    private val scheduleByMonth = HashMap<String, Map<String, List<String>>>()
 
     var selectedDate: String = sdf.format(Date())
+    var expanded: Boolean = true // true = شهر كامل، false = صف الأسبوع
 
     fun monthCal(pos: Int): Calendar = Calendar.getInstance().apply {
         set(Calendar.DAY_OF_MONTH, 1)
@@ -50,8 +52,8 @@ class MonthPageAdapter(
         return CENTER + months
     }
 
-    fun setMonthEvents(ym: String, days: Set<String>) {
-        eventsByMonth[ym] = days
+    fun setMonthSchedule(ym: String, byDate: Map<String, List<String>>) {
+        scheduleByMonth[ym] = byDate
         notifyDataSetChanged()
     }
 
@@ -86,7 +88,7 @@ class MonthPageAdapter(
         val d = ctx.resources.displayMetrics.density
         fun px(v: Int) = (v * d).toInt()
         val ym = ymf.format(cal.time)
-        val events = eventsByMonth[ym] ?: emptySet()
+        val sched = scheduleByMonth[ym] ?: emptyMap()
 
         val heads = arrayOf("أحد", "اثنين", "ثلا", "أرب", "خمي", "جمع", "سبت")
         for (h in heads) grid.addView(TextView(ctx).apply {
@@ -97,39 +99,76 @@ class MonthPageAdapter(
 
         val firstCol = cal.get(Calendar.DAY_OF_WEEK) - 1
         val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-        val ymStr = ymf.format(cal.time)
+        val curMonth = cal.get(Calendar.MONTH)
 
-        repeat(firstCol) {
-            grid.addView(View(ctx).apply {
-                layoutParams = GridLayout.LayoutParams().apply { width = 0; height = px(50); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f) }
-            })
+        // شبكة كاملة تشمل أيام الشهرين المجاورين (للتعبئة) بلون باهت.
+        data class Cell(val date: String, val day: Int, val inMonth: Boolean)
+        val total = ((firstCol + daysInMonth + 6) / 7) * 7
+        val iter = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, -firstCol) }
+        val cells = ArrayList<Cell>(total)
+        repeat(total) {
+            cells.add(Cell(sdf.format(iter.time), iter.get(Calendar.DAY_OF_MONTH), iter.get(Calendar.MONTH) == curMonth))
+            iter.add(Calendar.DAY_OF_MONTH, 1)
         }
-        for (day in 1..daysInMonth) {
-            val dateStr = "$ymStr-${"%02d".format(day)}"
-            val isSel = dateStr == selectedDate
-            val hasEvent = events.contains(dateStr)
+        val weeks = cells.chunked(7)
+
+        // في الوضع المطويّ نعرض أسبوع اليوم المحدّد فقط (أو الأول).
+        val rendered = if (expanded) weeks
+            else listOf(weeks.firstOrNull { wk -> wk.any { it.date == selectedDate } } ?: weeks.first())
+
+        for (wk in rendered) for (c in wk) {
+            val isSel = c.date == selectedDate && c.inMonth
+            val titles = if (c.inMonth) sched[c.date] ?: emptyList() else emptyList()
+            val hasEvent = titles.isNotEmpty()
+            val cellH = if (expanded) px(54) else px(50)
             val cell = LinearLayout(ctx).apply {
-                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0; height = px(50); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    width = 0; height = cellH; columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                     setMargins(px(2), px(2), px(2), px(2))
                 }
                 isClickable = true
-                if (isSel) background = GradientDrawable().apply { cornerRadius = px(14).toFloat(); setColor(primary()) }
             }
-            cell.addView(TextView(ctx).apply {
-                text = day.toString(); textSize = 16f; setTypeface(null, Typeface.BOLD)
-                setTextColor(if (isSel) Color.WHITE else col(R.color.ink))
-            })
-            cell.addView(View(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(px(5), px(5)).apply { topMargin = px(3) }
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(if (isSel) Color.WHITE else primary()) }
-                visibility = if (hasEvent) View.VISIBLE else View.INVISIBLE
-            })
+            // مربع الاختيار: رقم اليوم مُحاذى في وسطه تماماً.
+            val numBox = android.widget.FrameLayout(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(px(32), px(32))
+                if (isSel) background = GradientDrawable().apply { cornerRadius = px(16).toFloat(); setColor(primary()) }
+                addView(TextView(ctx).apply {
+                    text = c.day.toString(); textSize = 15f; setTypeface(null, Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                    layoutParams = android.widget.FrameLayout.LayoutParams(
+                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT)
+                    setTextColor(when {
+                        isSel -> Color.WHITE
+                        !c.inMonth -> col(R.color.ink_faint)
+                        else -> col(R.color.ink)
+                    })
+                })
+            }
+            cell.addView(numBox)
+
+            if (expanded) {
+                // عند التوسعة: عرض الأحداث كنص بدلاً من النقطة.
+                if (hasEvent) cell.addView(TextView(ctx).apply {
+                    text = if (titles.size > 1) "${titles[0]} +${titles.size - 1}" else titles[0]
+                    textSize = 8f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+                    gravity = Gravity.CENTER; setTextColor(primary())
+                    setPadding(px(2), px(1), px(2), 0)
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                })
+            } else {
+                // عند الطيّ: نقطة فقط.
+                cell.addView(View(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(px(5), px(5)).apply { topMargin = px(3) }
+                    background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(primary()) }
+                    visibility = if (hasEvent) View.VISIBLE else View.INVISIBLE
+                })
+            }
             cell.setOnClickListener {
-                selectedDate = dateStr
+                selectedDate = c.date
                 notifyDataSetChanged()
-                onDayClick(dateStr)
+                onDayClick(c.date)
             }
             grid.addView(cell)
         }

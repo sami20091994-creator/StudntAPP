@@ -32,6 +32,8 @@ class CalendarActivity : BaseActivity() {
     private lateinit var viewDaily: LinearLayout
     private lateinit var viewWeekly: ScrollView
     private lateinit var viewMonthly: ScrollView
+    private lateinit var viewYearly: ScrollView
+    private lateinit var yearContainer: LinearLayout
     private lateinit var weeklyGrid: LinearLayout
     private lateinit var monthlyGrid: GridLayout
     private lateinit var layoutNavHeader: LinearLayout
@@ -40,6 +42,11 @@ class CalendarActivity : BaseActivity() {
     private lateinit var monthPager: androidx.viewpager2.widget.ViewPager2
     private lateinit var monthAdapter: MonthPageAdapter
     private lateinit var tvDailyMonth: TextView
+    private lateinit var tvDayCardYM: TextView
+    private lateinit var tvDayCardNum: TextView
+    private lateinit var tvDayCardWeek: TextView
+    private lateinit var calBlock: LinearLayout
+    private lateinit var dayCard: androidx.cardview.widget.CardView
 
     private val sdfApi = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
     private val monthFormat = SimpleDateFormat("MMMM yyyy", Locale("ar"))
@@ -65,6 +72,8 @@ class CalendarActivity : BaseActivity() {
         viewDaily = findViewById(R.id.viewDaily)
         viewWeekly = findViewById(R.id.viewWeekly)
         viewMonthly = findViewById(R.id.viewMonthly)
+        viewYearly = findViewById(R.id.viewYearly)
+        yearContainer = findViewById(R.id.yearContainer)
         weeklyGrid = findViewById(R.id.weeklyGrid)
         monthlyGrid = findViewById(R.id.monthlyGrid)
         layoutNavHeader = findViewById(R.id.layoutNavHeader)
@@ -72,12 +81,19 @@ class CalendarActivity : BaseActivity() {
         tvDailyTitle = findViewById(R.id.tvDailyTitle)
         monthPager = findViewById(R.id.monthPager)
         tvDailyMonth = findViewById(R.id.tvDailyMonth)
+        tvDayCardYM = findViewById(R.id.tvDayCardYM)
+        tvDayCardNum = findViewById(R.id.tvDayCardNum)
+        tvDayCardWeek = findViewById(R.id.tvDayCardWeek)
+        calBlock = findViewById(R.id.calBlock)
+        dayCard = findViewById(R.id.dayCard)
         setupMonthPager()
+        updateDayCard()
 
         // إعداد أزرار التبديل
         findViewById<TextView>(R.id.btnDaily).setOnClickListener { switchViewMode("daily") }
         findViewById<TextView>(R.id.btnWeekly).setOnClickListener { switchViewMode("weekly") }
         findViewById<TextView>(R.id.btnMonthly).setOnClickListener { switchViewMode("monthly") }
+        findViewById<TextView>(R.id.btnYearly).setOnClickListener { switchViewMode("yearly") }
 
         // أزرار التنقل (السابق / التالي) للأسبوعي والشهري
         findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { adjustDate(-1) }
@@ -87,7 +103,7 @@ class CalendarActivity : BaseActivity() {
         findViewById<ImageButton>(R.id.btnDailyPrev).setOnClickListener { monthPager.currentItem = monthPager.currentItem - 1 }
         findViewById<ImageButton>(R.id.btnDailyNext).setOnClickListener { monthPager.currentItem = monthPager.currentItem + 1 }
 
-        switchViewMode("daily")
+        switchViewMode("monthly")
     }
 
     private fun adjustDate(amount: Int) {
@@ -106,32 +122,29 @@ class CalendarActivity : BaseActivity() {
         val btnD = findViewById<TextView>(R.id.btnDaily)
         val btnW = findViewById<TextView>(R.id.btnWeekly)
         val btnM = findViewById<TextView>(R.id.btnMonthly)
+        val btnY = findViewById<TextView>(R.id.btnYearly)
 
-        btnD.apply { 
-            background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_inactive)
-            setTextColor(ContextCompat.getColor(context, R.color.text_grey)) 
-        }
-        btnW.apply { 
-            background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_inactive)
-            setTextColor(ContextCompat.getColor(context, R.color.text_grey)) 
-        }
-        btnM.apply { 
-            background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_inactive)
-            setTextColor(ContextCompat.getColor(context, R.color.text_grey)) 
+        listOf(btnD, btnW, btnM, btnY).forEach {
+            it.background = ContextCompat.getDrawable(this, R.drawable.bg_toggle_inactive)
+            it.setTextColor(ContextCompat.getColor(this, R.color.text_grey))
         }
 
         viewDaily.visibility = View.GONE
         viewWeekly.visibility = View.GONE
         viewMonthly.visibility = View.GONE
+        viewYearly.visibility = View.GONE
         layoutNavHeader.visibility = View.GONE
 
         when (mode) {
             "daily" -> {
-                btnD.apply { 
+                btnD.apply {
                     background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_active)
-                    setTextColor(Color.WHITE) 
+                    setTextColor(Color.WHITE)
                 }
+                // يومي: أحداث اليوم فقط (بطاقة اليوم + القائمة، بدون تقويم).
                 viewDaily.visibility = View.VISIBLE
+                calBlock.visibility = View.GONE
+                dayCard.visibility = View.VISIBLE
                 tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
             }
             "weekly" -> {
@@ -143,12 +156,31 @@ class CalendarActivity : BaseActivity() {
                 layoutNavHeader.visibility = View.VISIBLE
             }
             "monthly" -> {
-                btnM.apply { 
+                btnM.apply {
                     background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_active)
-                    setTextColor(Color.WHITE) 
+                    setTextColor(Color.WHITE)
                 }
-                viewMonthly.visibility = View.VISIBLE
-                layoutNavHeader.visibility = View.VISIBLE
+                // شهري: التقويم القابل للتمرير + قائمة حصص اليوم المحدّد، بدون بطاقة اليوم.
+                viewDaily.visibility = View.VISIBLE
+                calBlock.visibility = View.VISIBLE
+                dayCard.visibility = View.GONE
+                tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+            }
+            "yearly" -> {
+                btnY.apply {
+                    background = ContextCompat.getDrawable(context, R.drawable.bg_toggle_active)
+                    setTextColor(Color.WHITE)
+                }
+                viewYearly.visibility = View.VISIBLE
+                val year = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }.get(Calendar.YEAR)
+                renderYearView(this, yearContainer, year) { y, mIdx ->
+                    val c = Calendar.getInstance().apply { clear(); set(y, mIdx, 1) }
+                    selectedDateStr = sdfApi.format(c.time)
+                    monthAdapter.selectedDate = selectedDateStr
+                    monthPager.setCurrentItem(monthAdapter.pageForDate(selectedDateStr), false)
+                    switchViewMode("daily")
+                    loadSchedule()
+                }
             }
         }
         updateHeaderTitles()
@@ -165,18 +197,19 @@ class CalendarActivity : BaseActivity() {
     }
 
     private fun loadSchedule() {
+        // في "شهري" أيضاً تعرض القائمة السفلية حصص اليوم المحدّد (نفس "يومي").
+        val fetchMode = if (currentViewMode == "monthly") "daily" else currentViewMode
         RetrofitClient.instance.getFullScheduleFiltered(
-            userId = userId, role = role, date = selectedDateStr, viewMode = currentViewMode
+            userId = userId, role = role, date = selectedDateStr, viewMode = fetchMode
         ).enqueue(object : Callback<List<ScheduleData>> {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
                 val list = response.body() ?: emptyList()
                 when (currentViewMode) {
-                    "daily" -> {
+                    "daily", "monthly" -> {
                         val sorted = list.sortedBy { it.startTime }
                         rvDaily.adapter = CalendarAdapter(sorted, selectedDateStr)
                     }
                     "weekly" -> renderWeeklyGrid(list)
-                    "monthly" -> renderMonthlyGrid(list)
                 }
             }
             override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) {
@@ -185,15 +218,18 @@ class CalendarActivity : BaseActivity() {
         })
     }
 
-    /** إعداد تقويم الأشهر القابل للتمرير الأفقي (ViewPager2) + نقاط الأحداث. */
+    /** إعداد تقويم الأشهر القابل للتمرير الأفقي (ViewPager2) + نقاط الأحداث + الطيّ/التوسعة. */
     private fun setupMonthPager() {
         monthAdapter = MonthPageAdapter(this) { date ->
             selectedDateStr = date
             tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
+            updateDayCard()
             loadSchedule()
         }
         monthAdapter.selectedDate = selectedDateStr
         monthPager.adapter = monthAdapter
+        // تعطيل السحب الأفقي بين الأشهر؛ التنقّل عبر السهمين فقط (لا يتعارض مع اختيار الأيام).
+        monthPager.isUserInputEnabled = false
         monthPager.setCurrentItem(MonthPageAdapter.CENTER, false)
         tvDailyMonth.text = monthFormat.format(sdfApi.parse(selectedDateStr)!!)
         monthPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
@@ -204,6 +240,49 @@ class CalendarActivity : BaseActivity() {
             }
         })
         fetchMonthEvents(monthAdapter.ymOf(MonthPageAdapter.CENTER))
+        setupCalCollapse()
+    }
+
+    private val calExpandedH get() = (380 * resources.displayMetrics.density).toInt()
+    private val calCollapsedH get() = (110 * resources.displayMetrics.density).toInt()
+
+    /** مقبض الطيّ/التوسعة: سحب لأعلى = أسبوع، لأسفل = شهر؛ والنقر يبدّل. */
+    private fun setupCalCollapse() {
+        val handle = findViewById<View>(R.id.calExpandHandle)
+        val gd = android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: android.view.MotionEvent) = true
+            override fun onScroll(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, dx: Float, dy: Float): Boolean {
+                // استجابة فورية: dy>0 سحب لأعلى = طيّ، dy<0 سحب لأسفل = توسعة.
+                if (dy > 12 && monthAdapter.expanded) setCalExpanded(false)
+                else if (dy < -12 && !monthAdapter.expanded) setCalExpanded(true)
+                return true
+            }
+            override fun onSingleTapUp(e: android.view.MotionEvent): Boolean { setCalExpanded(!monthAdapter.expanded); return true }
+        })
+        handle.setOnTouchListener { _, ev -> gd.onTouchEvent(ev); true }
+    }
+
+    private fun setCalExpanded(expand: Boolean) {
+        if (monthAdapter.expanded == expand) return
+        monthAdapter.expanded = expand
+        monthAdapter.notifyDataSetChanged()
+        val from = monthPager.layoutParams.height
+        val to = if (expand) calExpandedH else calCollapsedH
+        android.animation.ValueAnimator.ofInt(from, to).apply {
+            duration = 260
+            addUpdateListener {
+                monthPager.layoutParams = monthPager.layoutParams.apply { height = it.animatedValue as Int }
+            }
+            start()
+        }
+    }
+
+    /** يحدّث بطاقة اليوم المحدّد (السنة/الشهر + الرقم الكبير + اسم اليوم). */
+    private fun updateDayCard() {
+        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        tvDayCardYM.text = "${cal.get(Calendar.YEAR)} / ${cal.get(Calendar.MONTH) + 1}"
+        tvDayCardNum.text = cal.get(Calendar.DAY_OF_MONTH).toString()
+        tvDayCardWeek.text = SimpleDateFormat("EEEE", Locale("ar")).format(cal.time)
     }
 
     /** يجلب حصص شهر معيّن (yyyy-MM) لرسم النقاط. */
@@ -212,9 +291,14 @@ class CalendarActivity : BaseActivity() {
             userId = userId, role = role, date = "$ym-01", viewMode = "monthly"
         ).enqueue(object : Callback<List<ScheduleData>> {
             override fun onResponse(call: Call<List<ScheduleData>>, response: Response<List<ScheduleData>>) {
-                val days = HashSet<String>()
-                response.body()?.forEach { it.startDate?.let { d -> if (d.length >= 10) days.add(d.substring(0, 10)) } }
-                monthAdapter.setMonthEvents(ym, days)
+                val byDate = HashMap<String, MutableList<String>>()
+                response.body()?.forEach { ev ->
+                    ev.startDate?.let { d ->
+                        if (d.length >= 10) byDate.getOrPut(d.substring(0, 10)) { mutableListOf() }
+                            .add(ev.subjectName ?: "حصة")
+                    }
+                }
+                monthAdapter.setMonthSchedule(ym, byDate)
             }
             override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) {}
         })
@@ -229,8 +313,10 @@ class CalendarActivity : BaseActivity() {
         val endHour = 20 // من 8 صباحاً للـ 8 مساءً
         val dpToPx = resources.displayMetrics.density
         val hourHeightPx = (60 * dpToPx).toInt() // كل ساعة = 60dp ارتفاع
-        val dayWidthPx = (110 * dpToPx).toInt()
-        val timeWidthPx = (50 * dpToPx).toInt()
+        val timeWidthPx = (44 * dpToPx).toInt()
+        // عرض عمود اليوم يملأ الشاشة (7 أيام) بدل قياس ثابت يسبب تمريراً أفقياً.
+        val padPx = (16 * dpToPx).toInt()
+        val dayWidthPx = ((resources.displayMetrics.widthPixels - timeWidthPx - padPx) / 7) - (2 * dpToPx).toInt()
 
         // 1. إنشاء عمود الوقت (على اليمين)
         val timeCol = LinearLayout(this).apply {

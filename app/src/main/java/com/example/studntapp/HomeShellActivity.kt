@@ -42,6 +42,9 @@ class HomeShellActivity : BaseActivity() {
             }
         }
         pager.offscreenPageLimit = 1
+        // تعطيل السحب الأفقي بين الصفحات؛ التبديل (تقويم/تقرير...) عبر الشريط السفلي فقط
+        // كي لا تتعارض إيماءات التقويم مع تبديل الصفحات.
+        pager.isUserInputEnabled = false
 
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {

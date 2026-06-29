@@ -51,12 +51,28 @@
             android:id="@+id/btnMonthly"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_toggle_inactive"
             android:clickable="true"
             android:focusable="true"
             android:padding="12dp"
             android:text="شهري"
+            android:textAlignment="center"
+            android:textColor="@color/text_grey"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btnYearly"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_toggle_inactive"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp"
+            android:text="سنوي"
             android:textAlignment="center"
             android:textColor="@color/text_grey"
             android:textStyle="bold"
@@ -119,6 +135,13 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+            <!-- كتلة التقويم الشهري (تظهر في وضع "شهري" فقط) -->
+            <LinearLayout
+                android:id="@+id/calBlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <!-- رأس الشهر: السابق/التالي + اسم الشهر -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -164,15 +187,85 @@
             <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/monthPager"
                 android:layout_width="match_parent"
-                android:layout_height="330dp"
+                android:layout_height="380dp"
                 android:background="@color/surface_white" />
+
+            <!-- مقبض الطيّ/التوسعة (سحب أو نقر) -->
+            <FrameLayout
+                android:id="@+id/calExpandHandle"
+                android:layout_width="match_parent"
+                android:layout_height="28dp"
+                android:background="@color/surface_white"
+                android:clickable="true"
+                android:focusable="true">
+
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="5dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_chip_unselected" />
+            </FrameLayout>
+
+            </LinearLayout>
+            <!-- نهاية كتلة التقويم -->
+
+            <!-- بطاقة اليوم المحدّد (تظهر في وضع "يومي" فقط) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/dayCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="18dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvDayCardYM"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/ink_muted"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvDayCardNum"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/ink"
+                            android:textSize="42sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvDayCardWeek"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <TextView
                 android:id="@+id/tvDailyTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/surface_white"
-                android:padding="16dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="8dp"
                 android:text="حصص اليوم"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="16sp"
@@ -231,6 +324,23 @@
                 android:layoutDirection="rtl">
                 <!-- سيتم توليده برمجياً -->
             </GridLayout>
+        </ScrollView>
+
+        <!-- 4. العرض السنوي (12 شهراً مصغّرة) -->
+        <ScrollView
+            android:id="@+id/viewYearly"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/canvas"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/yearContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp" />
         </ScrollView>
 
     </FrameLayout>
