@@ -285,35 +285,65 @@ class MoodSelector(ctx: Context) : LinearLayout(ctx) {
     var rating: Int = 0
         private set
     private val faces = listOf("😠", "🙁", "😐", "😁", "🤩")
+    private val names = listOf("سيء", "ضعيف", "متوسط", "جيد", "ممتاز")
     private val items = mutableListOf<TextView>()
+    private var colorAnimator: android.animation.ValueAnimator? = null
 
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER
         val d = resources.displayMetrics.density
+        val p = (6 * d).toInt()
         faces.forEachIndexed { i, face ->
-            val tv = TextView(ctx).apply {
-                text = face
-                textSize = 26f
-                gravity = Gravity.CENTER
-                alpha = 0.5f // غير مختار = 50%
-                val p = (8 * d).toInt()
+            val emoji = TextView(ctx).apply {
+                text = face; textSize = 26f; gravity = Gravity.CENTER
+                setOnClickListener { select(i + 1) }
+            }
+            applySaturation(emoji, 0f) // أبيض/أسود قبل الاختيار
+            val label = TextView(ctx).apply {
+                text = names[i]; textSize = 11f; gravity = Gravity.CENTER
+                setTextColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.ink_muted))
+                setPadding(0, (3 * d).toInt(), 0, 0)
+                setOnClickListener { select(i + 1) }
+            }
+            val column = LinearLayout(ctx).apply {
+                orientation = VERTICAL; gravity = Gravity.CENTER
                 setPadding(p, p, p, p)
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener { select(i + 1) }
+                addView(emoji); addView(label)
             }
-            items.add(tv)
-            addView(tv)
+            items.add(emoji)
+            addView(column)
         }
+    }
+
+    /** يضبط تشبّع ألوان الإيموجي (0 = أبيض/أسود، 1 = كامل الألوان). */
+    private fun applySaturation(tv: TextView, sat: Float) {
+        val cm = android.graphics.ColorMatrix().apply { setSaturation(sat) }
+        tv.setLayerType(
+            android.view.View.LAYER_TYPE_HARDWARE,
+            android.graphics.Paint().apply { colorFilter = android.graphics.ColorMatrixColorFilter(cm) }
+        )
     }
 
     private fun select(value: Int) {
         rating = value
-        // غير المختار 50% شفافية، المختار 100% + تكبير.
+        // أوقف أي تلوين سابق قيد التشغيل لئلا يبقى إيموجي آخر ملوّناً.
+        colorAnimator?.cancel()
         items.forEachIndexed { idx, tv ->
             val sel = idx == value - 1
-            tv.alpha = if (sel) 1f else 0.5f
-            tv.animate().scaleX(if (sel) 1.3f else 1f).scaleY(if (sel) 1.3f else 1f).setDuration(120).start()
+            tv.animate().scaleX(if (sel) 1.3f else 1f).scaleY(if (sel) 1.3f else 1f).setDuration(150).start()
+            if (sel) {
+                // يتلوّن بحركة لطيفة (0 → كامل الألوان).
+                colorAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = 320
+                    addUpdateListener { applySaturation(tv, it.animatedValue as Float) }
+                    start()
+                }
+            } else {
+                applySaturation(tv, 0f) // يعود أبيض/أسود
+            }
         }
     }
 }
