@@ -41,6 +41,15 @@ class HomeFragment : Fragment() {
         val tvWelcome: TextView = view.findViewById(R.id.tvWelcome)
         tvWelcome.text = if (userName.isEmpty()) "مرحباً بك" else "مرحباً بك، $userName"
 
+        // الضغط على الاسم → صفحة التقرير الأكاديمي.
+        view.findViewById<View>(R.id.welcomeBlock).setOnClickListener {
+            startActivity(Intent(ctx, ReportActivity::class.java))
+            requireActivity().overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
+        }
+
+        // نسبة التقييم (المعدل التراكمي) يسار البطاقة.
+        loadEvalPercent(studentId, view.findViewById(R.id.tvHomeEvalPercent))
+
         // زر "عرض الكل" → صفحة كل الإعلانات.
         val btnSeeAll = view.findViewById<TextView>(R.id.tvAnnSeeAll)
         btnSeeAll.setOnClickListener {
@@ -99,6 +108,27 @@ class HomeFragment : Fragment() {
                 rvQuizzes.visibility = View.GONE
             }
         })
+    }
+
+    /** المعدل العام — يُورَّث من صفحة تقرير الأداء (ReportFragment) لنفس الطالب، وإلا يُجلب من الخادم. */
+    private fun loadEvalPercent(studentId: Int, tv: TextView) {
+        // اعرض القيمة المخزَّنة فقط إن كانت لنفس الطالب الحالي (تفادي قيمة قديمة من جلسة سابقة).
+        ReportFragment.averageFor(studentId)?.let { tv.text = "$it%" }
+        RetrofitClient.instance.getReportData(studentId = studentId, subjectId = 0)
+            .enqueue(object : Callback<ReportResponse> {
+                override fun onResponse(call: Call<ReportResponse>, response: Response<ReportResponse>) {
+                    if (!isAdded) return
+                    if (response.isSuccessful && response.body()?.status == "success") {
+                        val avg = response.body()?.data?.average ?: 0.0
+                        ReportFragment.setAverage(studentId, avg)
+                        tv.text = "$avg%"
+                    }
+                }
+                override fun onFailure(call: Call<ReportResponse>, t: Throwable) {
+                    if (!isAdded) return
+                    if (ReportFragment.averageFor(studentId) == null) tv.text = "--%"
+                }
+            })
     }
 
     private fun loadAnnouncements(userId: Int, rv: RecyclerView, empty: TextView) {

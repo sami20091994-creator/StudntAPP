@@ -37,6 +37,20 @@ import retrofit2.Response
 /** صفحة التقرير الأكاديمي للطالب داخل الـ ViewPager (تُبنى برمجياً). */
 class ReportFragment : Fragment() {
 
+    /** آخر معدل عام مُحمّل لطالب محدّد — تَرِثه بطاقة الاسم في الصفحة الرئيسية. */
+    companion object {
+        private var cachedStudentId: Int = -1
+        private var cachedAverage: Double? = null
+
+        fun setAverage(studentId: Int, avg: Double) {
+            cachedStudentId = studentId; cachedAverage = avg
+        }
+
+        /** يُرجع المعدل المخزَّن فقط إن كان لنفس الطالب، وإلا null. */
+        fun averageFor(studentId: Int): Double? =
+            if (studentId == cachedStudentId) cachedAverage else null
+    }
+
     private var studentId = 0
     private var role = "student"
     private lateinit var mainLayout: LinearLayout
@@ -422,6 +436,8 @@ class ReportFragment : Fragment() {
                     val data = response.body()?.data
                     tvAverage.text = "${data?.average ?: 0.0}%"
                     tvHeaderAvg?.text = "${data?.average ?: 0.0}%"
+                    // المعدل العام (كل المواد) فقط يُورَّث لبطاقة الاسم.
+                    if (currentSelectedSubjectId == 0) setAverage(studentId, data?.average ?: 0.0)
                     tvQuizzes.text = "${data?.quizzesCount ?: 0}"
                     tvRank.text = if ((data?.rank ?: 0) > 0) "${data?.rank} / ${data?.classSize}" else "—"
                     tvHours.text = "${data?.totalStudyHours ?: 0.0}"
