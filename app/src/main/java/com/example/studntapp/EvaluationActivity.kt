@@ -294,10 +294,9 @@ class MoodSelector(ctx: Context) : LinearLayout(ctx) {
         faces.forEachIndexed { i, face ->
             val tv = TextView(ctx).apply {
                 text = face
-                textSize = 24f
+                textSize = 26f
                 gravity = Gravity.CENTER
-                alpha = 0.7f // واضح حتى في اللايت مود (بلا تعتيم زائد)
-                scaleX = 0.92f; scaleY = 0.92f
+                alpha = 0.5f // غير مختار = 50%
                 val p = (8 * d).toInt()
                 setPadding(p, p, p, p)
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
@@ -310,16 +309,11 @@ class MoodSelector(ctx: Context) : LinearLayout(ctx) {
 
     private fun select(value: Int) {
         rating = value
-        val d = resources.displayMetrics.density
+        // غير المختار 50% شفافية، المختار 100% + تكبير.
         items.forEachIndexed { idx, tv ->
             val sel = idx == value - 1
-            tv.alpha = if (sel) 1f else 0.7f
-            // المختار: خلفية دائرية مميّزة بدل الاعتماد على التعتيم.
-            tv.background = if (sel) android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(0x33F7A61B) // ذهبي شفاف يظهر باللايت والدارك
-            } else null
-            tv.animate().scaleX(if (sel) 1.3f else 0.92f).scaleY(if (sel) 1.3f else 0.92f).setDuration(120).start()
+            tv.alpha = if (sel) 1f else 0.5f
+            tv.animate().scaleX(if (sel) 1.3f else 1f).scaleY(if (sel) 1.3f else 1f).setDuration(120).start()
         }
     }
 }
