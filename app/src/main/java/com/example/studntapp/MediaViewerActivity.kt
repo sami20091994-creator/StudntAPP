@@ -23,6 +23,19 @@ class MediaViewerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_media_viewer)
         supportActionBar?.hide()
 
+        // مراعاة النوتش/الحواف: ندفع المحتوى داخل المنطقة الآمنة.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        val root = findViewById<View>(R.id.rootMedia)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                    androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            androidx.core.view.WindowInsetsCompat.CONSUMED
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(root)
+
         val fileUrl = intent.getStringExtra("FILE_URL") ?: ""
         val fileType = intent.getStringExtra("FILE_TYPE") ?: "document"
 

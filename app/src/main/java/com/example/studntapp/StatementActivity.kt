@@ -25,6 +25,9 @@ class StatementActivity : BaseActivity() {
         setContentView(R.layout.activity_subjects)
         supportActionBar?.title = "كشف الحساب المالي"
 
+        // كشف الحساب لا يحتاج شريط فرز المواد (نشطة/مكتملة) — نخفيه.
+        findViewById<android.view.View?>(R.id.filterBar)?.visibility = android.view.View.GONE
+
         val rv = findViewById<RecyclerView>(R.id.rvSubjects)
         rv.layoutManager = LinearLayoutManager(this)
 
@@ -75,6 +78,14 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
         return tv.data
     }
     private fun col(id: Int) = ContextCompat.getColor(context, id)
+
+    /** تنسيق رقمي: نقطة كل 3 مراتب وفاصلة للكسور، مثل 10.000.000,00 */
+    private fun fmt(v: Double): String {
+        val sym = java.text.DecimalFormatSymbols(java.util.Locale.US).apply {
+            groupingSeparator = '.'; decimalSeparator = ','
+        }
+        return java.text.DecimalFormat("#,##0.00", sym).format(v)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         // البطاقة الأساسية
@@ -137,21 +148,83 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
 
         // تحديد نوع الحركة (دين أم دفعة) لتلوين البطاقة
         if (item.debit > 0) {
-            holder.tvAmount.text = "مطلوب دفع: ${item.debit}"
+            holder.tvAmount.text = "مطلوب دفع: ${fmt(item.debit)}"
             holder.tvAmount.setTextColor(col(R.color.error_red)) // أحمر للمطلوب (متوافق مع الليلي)
             holder.leftPanel.setBackgroundColor(col(R.color.panel_debit)) // خلفية حمراء باهتة
         } else if (item.credit > 0) {
-            holder.tvAmount.text = "تم دفع: ${item.credit}"
+            holder.tvAmount.text = "تم دفع: ${fmt(item.credit)}"
             holder.tvAmount.setTextColor(col(R.color.success_green)) // أخضر للمدفوع (متوافق مع الليلي)
             holder.leftPanel.setBackgroundColor(col(R.color.panel_credit)) // خلفية خضراء باهتة
         } else {
-            holder.tvAmount.text = "قيمة العملية: 0"
+            holder.tvAmount.text = "قيمة العملية: ${fmt(0.0)}"
             holder.tvAmount.setTextColor(col(R.color.ink_muted))
             holder.leftPanel.setBackgroundColor(col(R.color.surface_alt))
         }
 
         // عرض الرصيد الإجمالي التراكمي
-        holder.tvBalance.text = "${item.balance}"
+        holder.tvBalance.text = fmt(item.balance ?: 0.0)
+
+        // الضغط على الإيصال يفتح بطاقة بكل تفاصيله.
+        holder.card.setOnClickListener { showReceiptDialog(item) }
+    }
+
+    private fun dp(v: Int) = (v * context.resources.displayMetrics.density).toInt()
+
+    /** بطاقة منبثقة أنيقة بكل معلومات الإيصال، متكيّفة مع الثيم. */
+    private fun showReceiptDialog(item: TransactionData) {
+        val isDebit = item.debit > 0
+        val amountColor = if (isDebit) col(R.color.error_red) else col(R.color.success_green)
+        val amountLabel = if (isDebit) "مطلوب دفع" else "تم دفع"
+        val amountValue = if (isDebit) item.debit else item.credit
+
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(col(R.color.surface))
+            setPadding(dp(22), dp(20), dp(22), dp(8))
+        }
+        layout.addView(TextView(context).apply {
+            text = "تفاصيل الإيصال"; textSize = 19f
+            setTypeface(null, android.graphics.Typeface.BOLD); setTextColor(col(R.color.ink))
+            setPadding(0, 0, 0, dp(14))
+        })
+        layout.addView(receiptRow("التاريخ", item.date ?: "—", col(R.color.ink)))
+        layout.addView(receiptRow("البيان", item.description ?: "عملية مالية", col(R.color.ink)))
+        layout.addView(receiptRow(amountLabel, fmt(amountValue), amountColor))
+        layout.addView(receiptRow("الرصيد بعد العملية", fmt(item.balance ?: 0.0), primary(context)))
+
+        androidx.appcompat.app.AlertDialog.Builder(context)
+            .setView(layout)
+            .setPositiveButton("إغلاق", null)
+            .create().apply {
+                window?.setBackgroundDrawable(android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(22).toFloat(); setColor(col(R.color.surface))
+                })
+                show()
+                getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setTextColor(primary(context))
+            }
+    }
+
+    /** صف: عنوان رمادي + قيمة، داخل خلفية ناعمة دائرية. */
+    private fun receiptRow(label: String, value: String, valueColor: Int): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat(); setColor(col(R.color.surface_alt)); setStroke(dp(1), col(R.color.line))
+            }
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(10) }
+            addView(TextView(context).apply {
+                text = label; textSize = 12f; setTextColor(col(R.color.ink_muted))
+            })
+            addView(TextView(context).apply {
+                text = value; textSize = 16f; setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(valueColor); setPadding(0, dp(3), 0, 0)
+            })
+        }
     }
 
     override fun getItemCount() = list.size

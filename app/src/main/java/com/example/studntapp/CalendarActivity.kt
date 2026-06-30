@@ -344,7 +344,9 @@ class CalendarActivity : BaseActivity() {
             "monthly" -> {
                 selectedDateStr = today
                 monthAdapter.selectedDate = today
-                monthPager.setCurrentItem(monthAdapter.pageForDate(today), true)
+                val page = monthAdapter.pageForDate(today)
+                monthPager.setCurrentItem(page, true)
+                monthAdapter.notifyItemChanged(page) // يعيد بناء صفحة اليوم لتحديث تحديد اليوم حتى لو كنا بنفس الشهر
                 tvDailyTitle.text = "حصص تاريخ: ${pretty(selectedDateStr)}"
                 loadSchedule()
             }

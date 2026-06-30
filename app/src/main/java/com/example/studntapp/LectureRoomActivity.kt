@@ -59,8 +59,10 @@ class LectureRoomActivity : AppCompatActivity() {
         webView = findViewById(R.id.webViewLecture)
 
         // مراعاة النوتش/الحواف: نزيح محتوى المحاضرة أسفل شريط الحالة وفوق شريط التنقّل.
+        // نُزيح الجذر كاملاً (لا الـWebView وحده) داخل المنطقة الآمنة — أكثر موثوقية مع محتوى الويب.
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
+        val lectureRoot = findViewById<android.view.View>(R.id.lectureRoot)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(lectureRoot) { v, insets ->
             val bars = insets.getInsets(
                 androidx.core.view.WindowInsetsCompat.Type.systemBars() or
                     androidx.core.view.WindowInsetsCompat.Type.displayCutout()
@@ -68,7 +70,7 @@ class LectureRoomActivity : AppCompatActivity() {
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             androidx.core.view.WindowInsetsCompat.CONSUMED
         }
-        androidx.core.view.ViewCompat.requestApplyInsets(webView)
+        androidx.core.view.ViewCompat.requestApplyInsets(lectureRoot)
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val userId = prefs.getInt("USER_ID", 0)
