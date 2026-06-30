@@ -647,7 +647,7 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         dlg.window?.decorView?.layoutDirection = View.LAYOUT_DIRECTION_RTL
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
-        v.findViewById<TextView>(R.id.tvNavName).text = "أهلاً، ${prefs.getString("USER_NAME", "مستخدم")}"
+        v.findViewById<TextView>(R.id.tvNavName).text = prefs.getString("USER_NAME", "مستخدم")
         v.findViewById<TextView>(R.id.tvNavRole).text = if (isTeacher) "حساب معلم" else "حساب طالب"
         val ivPhoto = v.findViewById<ImageView>(R.id.ivNavPhoto)
         prefs.getString("USER_IMAGE", null)?.takeIf { it.isNotEmpty() }?.let { img ->

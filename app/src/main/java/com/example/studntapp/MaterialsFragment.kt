@@ -116,19 +116,20 @@ class MaterialsFragment : Fragment(), BackInterceptor {
 
     private fun renderSubjects() {
         if (!isAdded) return
-        val active = setOf("active", "نشطة", "ongoing")
+        // النشطة فقط للطالب (استثناء المكتملة كلياً) — بلا أزرار فرز.
         val done = setOf("completed", "complete", "done", "finished", "مكتملة")
-        val filtered = when (currentFilter) {
-            "active" -> allSubjects.filter { it.status?.trim()?.lowercase() in active }
-            "completed" -> allSubjects.filter { it.status?.trim()?.lowercase() in done }
-            else -> allSubjects
-        }
+        val filtered = allSubjects.filter { (it.status?.trim()?.lowercase() ?: "") !in done }
         rv.adapter = ReportSubjectsAdapter(filtered) { sub ->
             val subId = sub.subjectId ?: 0
             if (subId != 0) loadMaterialsForSubject(subId, sub.subjectName ?: "مادة", sub.teacherName, sub.status)
         }
         rv.alpha = 0f; rv.translationX = -rv.width.toFloat().coerceAtLeast(120f) * 0.25f
         rv.animate().alpha(1f).translationX(0f).setDuration(240).start()
+    }
+
+    /** يُستدعى من الشريط السفلي: إن كنّا داخل مادة نعود لقائمة المواد النشطة. */
+    fun resetToSubjects() {
+        if (isAdded && currentSubjectId != 0) loadSubjects()
     }
 
     private fun loadSubjects() {
@@ -138,7 +139,7 @@ class MaterialsFragment : Fragment(), BackInterceptor {
         currentSubjectId = 0
         setTitle("قائمة المواد الدراسية")
         fabUpload.visibility = View.GONE
-        view?.findViewById<View?>(R.id.filterBar)?.visibility = View.VISIBLE
+        view?.findViewById<View?>(R.id.filterBar)?.visibility = View.GONE // بلا أزرار فرز نشطة/مكتملة
         view?.findViewById<View?>(R.id.contentFilterBar)?.visibility = View.GONE
         view?.findViewById<View?>(R.id.contentHeader)?.visibility = View.GONE
         view?.findViewById<View?>(R.id.emptyState)?.visibility = View.GONE

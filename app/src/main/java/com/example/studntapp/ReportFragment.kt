@@ -17,6 +17,15 @@ import android.widget.ProgressBar
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputLayout
 import androidx.core.content.ContextCompat
@@ -34,6 +43,10 @@ class ReportFragment : Fragment() {
     private lateinit var subjectAutoComplete: AutoCompleteTextView
     private lateinit var tvAverage: TextView
     private lateinit var tvQuizzes: TextView
+    private lateinit var tvRank: TextView
+    private lateinit var tvHours: TextView
+    private lateinit var lineChart: com.github.mikephil.charting.charts.LineChart
+    private lateinit var barChart: com.github.mikephil.charting.charts.BarChart
     private lateinit var activeSubjectsContainer: LinearLayout
     private lateinit var completedSubjectsContainer: LinearLayout
     private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -145,6 +158,31 @@ class ReportFragment : Fragment() {
         statsLayout.addView(avgBox)
         statsLayout.addView(quizBox)
         mainLayout.addView(statsLayout)
+
+        // صف إحصائيات ثانٍ: الترتيب + ساعات الدراسة
+        val statsLayout2 = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 0, 0, 30); layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        val rankBox = statCard(ctx, col(R.color.gold)).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = 18 }
+        rankBox.addView(TextView(ctx).apply { text = "ترتيبك في الصف"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
+        tvRank = TextView(ctx).apply { text = "—"; textSize = 26f; setTextColor(col(R.color.gold)); setTypeface(null, Typeface.BOLD) }
+        rankBox.addView(tvRank)
+        val hoursBox = statCard(ctx, primaryColor()).apply { (layoutParams as LinearLayout.LayoutParams).marginStart = 18 }
+        hoursBox.addView(TextView(ctx).apply { text = "ساعات الدراسة"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
+        tvHours = TextView(ctx).apply { text = "0"; textSize = 26f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
+        hoursBox.addView(tvHours)
+        statsLayout2.addView(rankBox); statsLayout2.addView(hoursBox)
+        mainLayout.addView(statsLayout2)
+
+        // رسم بياني: تطوّر الأداء عبر الوقت
+        lineChart = com.github.mikephil.charting.charts.LineChart(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(220))
+        }
+        mainLayout.addView(chartCard(ctx, "تطوّر الأداء عبر الوقت", lineChart))
+
+        // رسم بياني: مقارنتك مع زملائك
+        barChart = com.github.mikephil.charting.charts.BarChart(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(240))
+        }
+        mainLayout.addView(chartCard(ctx, "مقارنتك مع زملاء الصف", barChart))
 
         // البطاقتان عمودياً: قيد الدراسة أولاً ثم المكتملة
         activeSubjectsContainer = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
@@ -278,6 +316,28 @@ class ReportFragment : Fragment() {
         }
     }
 
+    /** بطاقة رسم بياني: عنوان + الرسم داخل خلفية متكيّفة مع الثيم. */
+    private fun chartCard(ctx: Context, title: String, chart: View): View {
+        val d = ctx.resources.displayMetrics.density
+        fun px(v: Int) = (v * d).toInt()
+        return LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(px(14), px(14), px(14), px(14))
+            background = GradientDrawable().apply {
+                setColor(col(R.color.surface)); cornerRadius = px(20).toFloat(); setStroke(2, col(R.color.line))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = px(8); bottomMargin = px(8) }
+            addView(TextView(ctx).apply {
+                text = title; textSize = 16f; setTypeface(null, Typeface.BOLD)
+                setTextColor(col(R.color.ink)); setPadding(px(4), 0, px(4), px(10))
+            })
+            addView(chart)
+        }
+    }
+
     private fun cardBg() = GradientDrawable().apply {
         setColor(col(R.color.surface)); cornerRadius = 40f
         setStroke(2, col(R.color.line))
@@ -363,6 +423,11 @@ class ReportFragment : Fragment() {
                     tvAverage.text = "${data?.average ?: 0.0}%"
                     tvHeaderAvg?.text = "${data?.average ?: 0.0}%"
                     tvQuizzes.text = "${data?.quizzesCount ?: 0}"
+                    tvRank.text = if ((data?.rank ?: 0) > 0) "${data?.rank} / ${data?.classSize}" else "—"
+                    tvHours.text = "${data?.totalStudyHours ?: 0.0}"
+
+                    populateTimelineChart(data?.timeline)
+                    populateComparisonChart(data?.comparison)
 
                     val performanceMap = data?.subjects?.associateBy { it.subjectName ?: "" } ?: emptyMap()
                     renderEnrolledSubjects(performanceMap) // إغناء بالدرجات
@@ -370,6 +435,67 @@ class ReportFragment : Fragment() {
             }
             override fun onFailure(call: Call<ReportResponse>, t: Throwable) {}
         })
+    }
+
+    private fun chartTextColor() = col(R.color.ink_muted)
+
+    /** خط زمني: الاختبارات + الواجبات عبر التواريخ. */
+    private fun populateTimelineChart(t: ReportTimeline?) {
+        if (!::lineChart.isInitialized) return
+        val dates = t?.dates ?: emptyList()
+        val quizVals = t?.quiz ?: emptyList()
+        val hwVals = t?.homework ?: emptyList()
+        val quizEntries = ArrayList<Entry>()
+        val hwEntries = ArrayList<Entry>()
+        for (i in dates.indices) {
+            quizVals.getOrNull(i)?.let { quizEntries.add(Entry(i.toFloat(), it.toFloat())) }
+            hwVals.getOrNull(i)?.let { hwEntries.add(Entry(i.toFloat(), it.toFloat())) }
+        }
+        val sets = ArrayList<ILineDataSet>()
+        if (quizEntries.isNotEmpty()) sets.add(LineDataSet(quizEntries, "الاختبارات").apply {
+            color = primaryColor(); setCircleColor(primaryColor()); lineWidth = 2f; circleRadius = 3f
+            setDrawValues(false); setDrawCircleHole(false)
+        })
+        if (hwEntries.isNotEmpty()) sets.add(LineDataSet(hwEntries, "الواجبات").apply {
+            color = col(R.color.success_green); setCircleColor(col(R.color.success_green)); lineWidth = 2f; circleRadius = 3f
+            setDrawValues(false); setDrawCircleHole(false)
+        })
+        lineChart.apply {
+            data = if (sets.isEmpty()) null else LineData(sets)
+            description.isEnabled = false
+            axisRight.isEnabled = false
+            axisLeft.axisMinimum = 0f; axisLeft.axisMaximum = 100f; axisLeft.textColor = chartTextColor()
+            xAxis.position = XAxis.XAxisPosition.BOTTOM; xAxis.granularity = 1f; xAxis.textColor = chartTextColor()
+            xAxis.valueFormatter = IndexAxisValueFormatter(dates.map { it.takeLast(5) })
+            legend.textColor = col(R.color.ink)
+            setNoDataText("لا توجد بيانات أداء"); setNoDataTextColor(chartTextColor())
+            animateX(600); invalidate()
+        }
+    }
+
+    /** أعمدة: مقارنة الطالب مع زملائه (عمود الطالب بلون مميّز). */
+    private fun populateComparisonChart(list: List<ClassmateScore>?) {
+        if (!::barChart.isInitialized) return
+        val data = list ?: emptyList()
+        val entries = ArrayList<BarEntry>()
+        val colors = ArrayList<Int>()
+        data.forEachIndexed { i, c ->
+            entries.add(BarEntry(i.toFloat(), c.percentage.toFloat()))
+            colors.add(if (c.isCurrent) col(R.color.gold) else primaryColor())
+        }
+        val set = BarDataSet(entries, "النسبة %").apply { setColors(colors); valueTextColor = chartTextColor() }
+        barChart.apply {
+            this.data = if (entries.isEmpty()) null else BarData(set).apply { barWidth = 0.6f }
+            description.isEnabled = false
+            axisRight.isEnabled = false
+            axisLeft.axisMinimum = 0f; axisLeft.axisMaximum = 100f; axisLeft.textColor = chartTextColor()
+            xAxis.position = XAxis.XAxisPosition.BOTTOM; xAxis.granularity = 1f; xAxis.textColor = chartTextColor()
+            xAxis.setLabelRotationAngle(-40f)
+            xAxis.valueFormatter = IndexAxisValueFormatter(data.map { (it.name ?: "").take(8) })
+            legend.isEnabled = false
+            setNoDataText("لا توجد بيانات مقارنة"); setNoDataTextColor(chartTextColor())
+            setFitBars(true); animateY(600); invalidate()
+        }
     }
 
     /** يرسم المواد المسجّلة (مستقلّاً عن نجاح getReportData) موزّعةً حسب الحالة، مع إغناء الدرجات إن توفّرت. */

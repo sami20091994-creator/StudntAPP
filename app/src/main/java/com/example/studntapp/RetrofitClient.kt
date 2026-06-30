@@ -463,9 +463,26 @@ data class TransactionData(
 
 data class ReportResponse(val status: String, val data: ReportData?)
 data class ReportData(
-    val average: Double,
-    @SerializedName("quizzes_count") val quizzesCount: Int,
-    val subjects: List<SubjectPerformance>?
+    @SerializedName("student_name") val studentName: String? = null,
+    val average: Double = 0.0,
+    @SerializedName("quizzes_count") val quizzesCount: Int = 0,
+    val rank: Int = 0,
+    @SerializedName("class_size") val classSize: Int = 0,
+    @SerializedName("total_study_hours") val totalStudyHours: Double = 0.0,
+    @SerializedName("avg_hours_per_week") val avgHoursPerWeek: Double = 0.0,
+    val subjects: List<SubjectPerformance>? = null,
+    val timeline: ReportTimeline? = null,
+    val comparison: List<ClassmateScore>? = null
+)
+data class ReportTimeline(
+    val dates: List<String>? = null,
+    val quiz: List<Double?>? = null,
+    val homework: List<Double?>? = null
+)
+data class ClassmateScore(
+    val name: String? = null,
+    val percentage: Double = 0.0,
+    @SerializedName("is_current") val isCurrent: Boolean = false
 )
 data class SubjectPerformance(
     @SerializedName("subject_name") val subjectName: String?,

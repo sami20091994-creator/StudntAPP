@@ -79,6 +79,8 @@ class HomeShellActivity : BaseActivity() {
     /** الضغط على تبويب يحرّك صفحة الـ ViewPager بدل فتح نشاط جديد. */
     override fun handleMainTab(index: Int): Boolean {
         if (::pager.isInitialized) {
+            // زر "المواد الدراسية": إن كنّا داخل مادة، يعيدنا لقائمة المواد النشطة.
+            if (index == 2) (supportFragmentManager.findFragmentByTag("f2") as? MaterialsFragment)?.resetToSubjects()
             pager.currentItem = index
             return true
         }

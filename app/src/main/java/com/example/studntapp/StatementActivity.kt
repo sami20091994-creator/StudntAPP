@@ -82,7 +82,7 @@ class StatementAdapter(private val list: List<TransactionData>, private val cont
     /** تنسيق رقمي: نقطة كل 3 مراتب وفاصلة للكسور، مثل 10.000.000,00 */
     private fun fmt(v: Double): String {
         val sym = java.text.DecimalFormatSymbols(java.util.Locale.US).apply {
-            groupingSeparator = '.'; decimalSeparator = ','
+            groupingSeparator = ','; decimalSeparator = '.'
         }
         return java.text.DecimalFormat("#,##0.00", sym).format(v)
     }
