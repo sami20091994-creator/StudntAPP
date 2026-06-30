@@ -215,10 +215,10 @@ class MainActivity : AppCompatActivity() {
             if (needTop > scroll.scrollY) scroll.smoothScrollTo(0, needTop)
         }
         val onFocus = { field: View -> scroll.postDelayed({ revealField(field) }, 280) }
+        // ملاحظة: لا نضع OnClickListener على الحقول — يبتلع التركيز على بعض أجهزة Infinix/Xiaomi.
+        // نعتمد OnFocusChangeListener فقط؛ النقر يمنح التركيز افتراضياً (focusableInTouchMode).
         etPhone.setOnFocusChangeListener { v, has -> if (has) onFocus(v) }
         etPassword.setOnFocusChangeListener { v, has -> if (has) onFocus(v) }
-        etPhone.setOnClickListener { onFocus(etPhone) }
-        etPassword.setOnClickListener { onFocus(etPassword) }
         // إعادة الإظهار فور تقلّص الـ ScrollView (ظهور الكيبورد).
         scroll.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             if ((bottom - top) < (oldBottom - oldTop)) {

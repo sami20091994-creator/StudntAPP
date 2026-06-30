@@ -62,7 +62,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_pill"
-                android:drawableStart="@drawable/ic_nav_hours"
+                android:drawableStart="@drawable/ic_account"
                 android:drawablePadding="6dp"
                 android:drawableTint="?attr/colorPrimary"
                 android:paddingHorizontal="12dp"
@@ -105,7 +105,7 @@
                 android:background="@drawable/bg_status_active"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:textColor="@color/success_green"
+                android:textColor="@color/status_active_text"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:visibility="gone" />

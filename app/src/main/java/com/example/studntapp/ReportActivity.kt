@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import com.google.android.material.textfield.TextInputLayout
 import androidx.core.content.ContextCompat
 import retrofit2.Call
 import retrofit2.Callback
@@ -19,7 +20,7 @@ class ReportActivity : BaseActivity() {
 
     private var studentId = 0
     private lateinit var mainLayout: LinearLayout
-    private lateinit var spinnerSubjects: Spinner
+    private lateinit var subjectAutoComplete: AutoCompleteTextView
     private lateinit var tvAverage: TextView
     private lateinit var tvQuizzes: TextView
     private lateinit var activeSubjectsContainer: LinearLayout
@@ -27,6 +28,7 @@ class ReportActivity : BaseActivity() {
 
     private var allEnrolledSubjects = mutableListOf<SubjectData>()
     private var currentSelectedSubjectId = 0
+    private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
     // ===== ألوان متوافقة مع الثيم/الوضع الليلي =====
     private fun col(id: Int) = ContextCompat.getColor(this, id)
@@ -47,6 +49,10 @@ class ReportActivity : BaseActivity() {
     }
 
     private fun buildUI() {
+        swipeRefresh = androidx.swiperefreshlayout.widget.SwipeRefreshLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setOnRefreshListener { fetchSubjectsAndStatus() }
+        }
         val scrollView = ScrollView(this).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             isFillViewport = true
@@ -66,12 +72,25 @@ class ReportActivity : BaseActivity() {
             setPadding(4, 0, 4, 14)
             gravity = Gravity.END
         }
-        spinnerSubjects = Spinner(this).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)
-            background = cardBg()
+        val textInputLayout = TextInputLayout(this, null, com.google.android.material.R.style.Widget_Material3_TextInputLayout_OutlinedBox_ExposedDropdownMenu).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 20 }
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+            setBoxCornerRadii(35f, 35f, 35f, 35f)
         }
+        subjectAutoComplete = com.google.android.material.textfield.MaterialAutoCompleteTextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            inputType = android.text.InputType.TYPE_NULL
+            setTextColor(col(R.color.ink))
+            textSize = 14f
+            isFocusable = false
+            isClickable = true
+            setOnClickListener { 
+                if (isPopupShowing) dismissDropDown() else showDropDown() 
+            }
+        }
+        textInputLayout.addView(subjectAutoComplete)
         mainLayout.addView(filterLabel)
-        mainLayout.addView(spinnerSubjects)
+        mainLayout.addView(textInputLayout)
 
         val statsLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30) }
         val avgBox = LinearLayout(this).apply {
@@ -105,7 +124,8 @@ class ReportActivity : BaseActivity() {
         mainLayout.addView(completedSubjectsContainer)
 
         scrollView.addView(mainLayout)
-        setContentView(scrollView)
+        swipeRefresh.addView(scrollView)
+        setContentView(swipeRefresh)
     }
 
     private fun cardBg() = GradientDrawable().apply {
@@ -127,27 +147,56 @@ class ReportActivity : BaseActivity() {
     private fun fetchSubjectsAndStatus() {
         RetrofitClient.instance.getEnrolledSubjects(studentId = studentId).enqueue(object : Callback<SubjectListResponse> {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                swipeRefresh.isRefreshing = false
                 if (response.isSuccessful) {
                     allEnrolledSubjects.clear()
                     response.body()?.data?.let { allEnrolledSubjects.addAll(it) }
 
-                    val spinnerList = mutableListOf(SubjectData(null, null, "جميع المواد", null, ""))
-                    spinnerList.addAll(allEnrolledSubjects)
+                    val activeSubs = allEnrolledSubjects.filter { (it.status ?: "active").lowercase() == "active" }
+                    val doneSubs = allEnrolledSubjects.filter { (it.status ?: "active").lowercase() != "active" }
+                    
+                    val spinnerList = mutableListOf<SubjectData>()
+                    spinnerList.add(SubjectData(null, null, "جميع المواد", null, ""))
+                    
+                    if (activeSubs.isNotEmpty()) {
+                        spinnerList.addAll(activeSubs)
+                    }
+                    if (doneSubs.isNotEmpty()) {
+                        spinnerList.add(SubjectData(-1, null, "—— المواد المكتملة ——", null, ""))
+                        spinnerList.addAll(doneSubs)
+                    }
 
-                    val adapter = ArrayAdapter(this@ReportActivity, android.R.layout.simple_spinner_item, spinnerList.map { it.subjectName ?: "" })
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    spinnerSubjects.adapter = adapter
-
-                    spinnerSubjects.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                        override fun onItemSelected(p0: AdapterView<*>?, p1: View?, position: Int, p3: Long) {
-                            currentSelectedSubjectId = spinnerList[position].subjectId ?: 0
-                            loadReportData()
+                    val labels = spinnerList.map { sub ->
+                        if (sub.subjectId == null) "جميع المواد"
+                        else if (sub.subjectId == -1) sub.subjectName ?: ""
+                        else {
+                            val active = (sub.status ?: "active").lowercase() == "active"
+                            "${sub.subjectName ?: "مادة"} — ${if (active) "نشطة" else "مكتملة"}"
                         }
-                        override fun onNothingSelected(p0: AdapterView<*>?) {}
+                    }
+
+                    val adapter = object : ArrayAdapter<String>(this@ReportActivity, android.R.layout.simple_dropdown_item_1line, labels) {
+                        override fun isEnabled(position: Int): Boolean {
+                            return spinnerList[position].subjectId != -1
+                        }
+                        override fun areAllItemsEnabled(): Boolean = false
+                    }
+                    subjectAutoComplete.setAdapter(adapter)
+
+                    loadReportData()
+
+                    subjectAutoComplete.setOnItemClickListener { _, _, position, _ ->
+                        currentSelectedSubjectId = spinnerList[position].subjectId ?: 0
+                        loadReportData()
+                    }
+                    if (labels.isNotEmpty()) {
+                        subjectAutoComplete.setText(labels[0], false)
                     }
                 }
             }
-            override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {}
+            override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                swipeRefresh.isRefreshing = false
+            }
         })
     }
 
@@ -181,18 +230,20 @@ class ReportActivity : BaseActivity() {
     }
 
     private fun addSubjectToUI(name: String, percentage: Double, status: String) {
+        val d = resources.displayMetrics.density
+        fun px(v: Int) = (v * d).toInt()
         val isLow = percentage < 60
         val isActive = status.lowercase() == "active"
 
         val barLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(35, 35, 35, 35)
+            setPadding(px(16), px(16), px(16), px(16))
             background = GradientDrawable().apply {
-                setColor(col(R.color.surface)); cornerRadius = 30f
+                setColor(col(R.color.surface)); cornerRadius = px(16).toFloat()
                 setStroke(2, col(R.color.line))
             }
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, 30) }
-            elevation = 6f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, px(12)) }
+            elevation = px(2).toFloat()
         }
 
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 10f; gravity = Gravity.CENTER_VERTICAL }
@@ -202,31 +253,30 @@ class ReportActivity : BaseActivity() {
             setTextColor(if (isActive) primaryColor() else col(R.color.white))
             background = GradientDrawable().apply {
                 setColor(if (isActive) col(R.color.surface_alt) else col(R.color.success_green))
-                cornerRadius = 12f
+                cornerRadius = px(8).toFloat()
             }
-            setPadding(20, 8, 20, 8); textSize = 11f; gravity = Gravity.CENTER
+            setPadding(px(10), px(4), px(10), px(4)); textSize = 13f; gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3f)
         }
 
         val tvName = TextView(this).apply {
-            text = name; textSize = 15f; setTypeface(null, Typeface.BOLD)
-            setTextColor(col(R.color.ink)) // الاسم دائماً بلون النص الأساسي؛ التنبيه يظهر في النسبة فقط
+            text = name; textSize = 16f; setTypeface(null, Typeface.BOLD)
+            setTextColor(col(R.color.ink))
             gravity = Gravity.END; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 7f)
         }
         header.addView(tvStatus); header.addView(tvName); barLayout.addView(header)
 
         val tvPercent = TextView(this).apply {
-            text = "$percentage%"; setTypeface(null, Typeface.BOLD); gravity = Gravity.END
+            text = "$percentage%"; textSize = 18f; setTypeface(null, Typeface.BOLD); gravity = Gravity.END
             setTextColor(if (isLow) col(R.color.error_red) else primaryColor())
-            setPadding(0, 15, 0, 5)
+            setPadding(0, px(8), 0, px(4))
         }
         barLayout.addView(tvPercent)
 
         val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 26).apply { topMargin = 14 }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(10)).apply { topMargin = px(6) }
             max = 100; this.progress = percentage.toInt()
             val pColor = if (isLow) col(R.color.error_red) else if (isActive) primaryColor() else col(R.color.success_green)
-            // تلوين الجزء المُنجَز فقط، وإبقاء المسار غير المُنجَز بلون خفيف — مظهر Material أنظف.
             progressTintList = android.content.res.ColorStateList.valueOf(pColor)
             progressBackgroundTintList = android.content.res.ColorStateList.valueOf(col(R.color.line))
         }
@@ -234,8 +284,8 @@ class ReportActivity : BaseActivity() {
 
         if (!isActive) {
             val tvDone = TextView(this).apply {
-                text = "تم التخرج من هذه المادة 🎓"; textSize = 12f; setTextColor(col(R.color.success_green))
-                setPadding(0, 15, 0, 0); gravity = Gravity.END; setTypeface(null, Typeface.ITALIC)
+                text = "تم التخرج من هذه المادة 🎓"; textSize = 13f; setTextColor(col(R.color.success_green))
+                setPadding(0, px(8), 0, 0); gravity = Gravity.END; setTypeface(null, Typeface.ITALIC)
             }
             barLayout.addView(tvDone)
             completedSubjectsContainer.addView(barLayout)

@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/swipeRefresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/canvas"
-    android:fillViewport="true"
-    android:clipToPadding="false"
-    android:layoutDirection="rtl">
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/canvas"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -98,15 +103,34 @@
             android:textSize="14sp"
             android:visibility="gone" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="12dp"
-            android:text="اختبارات اليوم"
-            android:textColor="@color/ink"
-            android:textSize="17sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="اختبارات اليوم"
+                android:textColor="@color/ink"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvShowExamHistory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:padding="4dp"
+                android:text="عرض سجل الاختبارات"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvDailyQuizzes"
@@ -129,3 +153,4 @@
 
     </LinearLayout>
 </ScrollView>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

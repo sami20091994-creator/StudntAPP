@@ -190,85 +190,13 @@
             </LinearLayout>
             <!-- نهاية كتلة التقويم -->
 
-            <!-- بطاقة اليوم المحدّد: كبيرة + الأحداث بداخلها (وضع "يومي" فقط) -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/dayCard"
+            <!-- بطاقات اليوم المتلاصقة (وضع "يومي" فقط) عبر ViewPager2 -->
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/dayPager"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/surface"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="3dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tvDayCardYM"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/ink_muted"
-                                android:textSize="15sp" />
-
-                            <TextView
-                                android:id="@+id/tvDayCardNum"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/ink"
-                                android:textSize="58sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/tvDayCardWeek"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorPrimary"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="14dp"
-                        android:background="@color/line" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="حصص اليوم"
-                        android:textColor="?attr/colorPrimary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvDayEvents"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginTop="8dp"
-                        android:clipToPadding="false" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+                android:layoutDirection="rtl" />
 
             <TextView
                 android:id="@+id/tvDailyTitle"
@@ -290,25 +218,14 @@
                 android:paddingBottom="20dp" />
         </LinearLayout>
 
-        <!-- 2. العرض الأسبوعي (تنقّل الأسابيع بالسحب يمين/يسار) -->
-        <ScrollView
+        <!-- 2. العرض الأسبوعي: بطاقات أسابيع متلاصقة عبر ViewPager2 -->
+        <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/viewWeekly"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/background_light"
-            android:fillViewport="true"
             android:layoutDirection="rtl"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/weeklyGrid"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="8dp">
-                <!-- سيتم توليده برمجياً -->
-            </LinearLayout>
-        </ScrollView>
+            android:visibility="gone" />
 
         <!-- 3. العرض الشهري (شبكة 7 أيام) -->
         <ScrollView

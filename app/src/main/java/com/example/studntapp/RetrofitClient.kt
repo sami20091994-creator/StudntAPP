@@ -95,7 +95,9 @@ interface ApiService {
     @POST("api.php")
     fun getDailyReport(
         @Field("action") action: String = "get_daily_report",
-        @Field("student_id") studentId: Int
+        @Field("student_id") studentId: Int,
+        // اختياري: تاريخ محدّد (yyyy-MM-dd) لسجل اختبارات يوم معيّن. فارغ = اليوم (توافق خلفي).
+        @Field("date") date: String? = null
     ): Call<DailyReportResponse>
 
     @FormUrlEncoded

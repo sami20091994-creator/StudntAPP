@@ -47,6 +47,8 @@ class MaterialsFragment : Fragment(), BackInterceptor {
     }
 
     private fun setTitle(t: String) {
+        // لا تغيّر عنوان الشريط إلا إن كانت هذه الصفحة هي الظاهرة فعلاً (تمنع تسرّب العنوان لصفحة التقرير المجاورة).
+        if (!isResumed) return
         (activity as? AppCompatActivity)?.supportActionBar?.title = t
     }
 
@@ -87,6 +89,16 @@ class MaterialsFragment : Fragment(), BackInterceptor {
             }
 
         loadSubjects()
+        
+        val swipeRefresh = view.findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener {
+            if (currentSubjectId != 0) {
+                val currentName = view.findViewById<android.widget.TextView>(R.id.tvContentTitle)?.text?.toString() ?: "المادة"
+                loadMaterialsForSubject(currentSubjectId, currentName)
+            } else {
+                loadSubjects()
+            }
+        }
     }
 
     private fun renderMaterials() {
@@ -134,6 +146,7 @@ class MaterialsFragment : Fragment(), BackInterceptor {
         RetrofitClient.instance.getSubjects(userId = userId, role = role)
             .enqueue(object : Callback<SubjectListResponse> {
                 override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                    view?.findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     if (!isAdded) return
                     if (response.isSuccessful && response.body()?.status == "success") {
                         val subjects = response.body()?.data ?: emptyList()
@@ -146,6 +159,7 @@ class MaterialsFragment : Fragment(), BackInterceptor {
                     }
                 }
                 override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                    view?.findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     if (!isAdded) return
                     Toast.makeText(requireContext(), "فشل الاتصال", Toast.LENGTH_SHORT).show()
                 }
@@ -172,11 +186,13 @@ class MaterialsFragment : Fragment(), BackInterceptor {
 
         RetrofitClient.instance.getSubjectMaterials(subjectId = subjectId).enqueue(object : Callback<MaterialResponse> {
             override fun onResponse(call: Call<MaterialResponse>, response: Response<MaterialResponse>) {
+                view?.findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (!isAdded) return
                 allMaterials = response.body()?.data ?: emptyList()
                 renderMaterials()
             }
             override fun onFailure(call: Call<MaterialResponse>, t: Throwable) {
+                view?.findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (!isAdded) return
                 allMaterials = emptyList(); renderMaterials()
                 Toast.makeText(requireContext(), "فشل تحميل الملفات", Toast.LENGTH_SHORT).show()

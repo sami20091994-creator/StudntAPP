@@ -13,6 +13,7 @@
     <color name="indigo_deep">#1B1E3A</color>      <!-- النصوص الداكنة -->
     <color name="indigo_soft">#EAF1FF</color>      <!-- خلفية ناعمة/تظليل -->
     <color name="gold">#F7A61B</color>             <!-- التبويب النشط/التمييز -->
+    <color name="forgot_link">#F7A61B</color>      <!-- رابط نسيت كلمة المرور (أبيض بالوضع الليلي) -->
     <color name="gold_soft">#FFF3DE</color>        <!-- خلفية ذهبية ناعمة -->
 
     <!-- الأسطح والخلفيات -->
@@ -27,6 +28,8 @@
 
     <!-- حالات -->
     <color name="success_green">#2BB673</color>
+    <color name="status_active_text">#166534</color>
+    <color name="status_completed_text">#6B7280</color>
     <color name="error_red">#E5484D</color>
     <color name="warning_amber">#F7A61B</color>
     <color name="line">#E7E8F2</color>

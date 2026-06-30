@@ -16,6 +16,8 @@
     <color name="text_grey">#94A3B8</color>
     <color name="text_light">#64748B</color>
     <color name="success_green">#81E6D9</color>
+    <color name="status_active_text">#6EE7B7</color>
+    <color name="status_completed_text">#9CA3AF</color>
     <color name="error_red">#FEB2B2</color>
     <color name="divider">#2D3748</color>
     <color name="primary_blue_light">#1E3A8A</color>
@@ -33,5 +35,6 @@
     <!-- ألوان لوحات كشف الحساب (ليلي) -->
     <color name="panel_debit">#3A2228</color>
     <color name="panel_credit">#163528</color>
+    <color name="forgot_link">#FFFFFF</color>
     <!-- لا نغيّر نبرات الباقات في الوضع المظلم — اللون نفسه، تتغيّر الأسطح فقط للأسود/الأبيض. -->
 </resources>

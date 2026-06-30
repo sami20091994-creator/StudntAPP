@@ -47,15 +47,19 @@ fun bindCourseMeta(teacherTv: TextView, statusTv: TextView, teacher: String?, st
     val active = setOf("active", "نشطة", "ongoing")
     when (raw) {
         in done -> {
-            statusTv.text = "مكتملة"
+            statusTv.text = "  مكتملة  "
             statusTv.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_completed)
-            statusTv.setTextColor(android.graphics.Color.parseColor("#166534"))
+            statusTv.setTextColor(ContextCompat.getColor(ctx, R.color.status_completed_text))
+            statusTv.paintFlags = statusTv.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            statusTv.letterSpacing = 0.05f
             statusTv.visibility = View.VISIBLE
         }
         in active -> {
             statusTv.text = "نشطة"
             statusTv.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_active)
-            statusTv.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
+            statusTv.setTextColor(ContextCompat.getColor(ctx, R.color.status_active_text))
+            statusTv.paintFlags = statusTv.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+            statusTv.letterSpacing = 0f
             statusTv.visibility = View.VISIBLE
         }
         else -> statusTv.visibility = View.GONE
@@ -141,6 +145,16 @@ class MaterialsActivity : BaseActivity() {
         } else {
             loadSubjects()
         }
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener {
+            if (currentSubjectId != 0) {
+                val currentName = findViewById<android.widget.TextView>(R.id.tvContentTitle)?.text?.toString() ?: "المادة"
+                loadMaterialsForSubject(currentSubjectId, currentName)
+            } else {
+                loadSubjects()
+            }
+        }
     }
 
     /** يبني قائمة المواد بعد تطبيق الفرز الحالي (نشطة/مكتملة/الكل). */
@@ -182,6 +196,7 @@ class MaterialsActivity : BaseActivity() {
 
         call.enqueue(object : Callback<SubjectListResponse> {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful && response.body()?.status == "success") {
                     val subjects = response.body()?.data ?: emptyList()
                     allSubjects = subjects
@@ -193,6 +208,7 @@ class MaterialsActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 Toast.makeText(this@MaterialsActivity, "فشل الاتصال", Toast.LENGTH_SHORT).show()
             }
         })
@@ -231,10 +247,12 @@ class MaterialsActivity : BaseActivity() {
 
         RetrofitClient.instance.getSubjectMaterials(subjectId = subjectId).enqueue(object : Callback<MaterialResponse> {
             override fun onResponse(call: Call<MaterialResponse>, response: Response<MaterialResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 allMaterials = response.body()?.data ?: emptyList()
                 renderMaterials()
             }
             override fun onFailure(call: Call<MaterialResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 allMaterials = emptyList(); renderMaterials()
                 Toast.makeText(this@MaterialsActivity, "فشل تحميل الملفات", Toast.LENGTH_SHORT).show()
             }

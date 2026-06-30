@@ -26,8 +26,17 @@ class SubjectsActivity : ThemedActivity() {
 
         val studentId = getSharedPreferences("AppSession", Context.MODE_PRIVATE).getInt("USER_ID", 0)
 
+        loadSubjects(studentId, rv)
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadSubjects(studentId, rv) }
+    }
+
+    private fun loadSubjects(studentId: Int, rv: RecyclerView) {
+
         RetrofitClient.instance.getEnrolledSubjects(studentId = studentId).enqueue(object : Callback<SubjectListResponse> {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful) {
                     val subjects = response.body()?.data ?: emptyList()
                     val adapter = SubjectsAdapter(subjects)
@@ -44,6 +53,7 @@ class SubjectsActivity : ThemedActivity() {
             }
 
             override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 Toast.makeText(this@SubjectsActivity, "فشل الاتصال بالخادم", Toast.LENGTH_SHORT).show()
             }
         })

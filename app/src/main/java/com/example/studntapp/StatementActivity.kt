@@ -32,11 +32,17 @@ class StatementActivity : BaseActivity() {
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val studentId = prefs.getInt("USER_ID", 0)
 
-        // طلب كشف الحساب من السيرفر
+        loadStatement(studentId, rv)
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadStatement(studentId, rv) }
+    }
+
+    private fun loadStatement(studentId: Int, rv: RecyclerView) {
         RetrofitClient.instance.getStatement(studentId = studentId).enqueue(object : Callback<StatementResponse> {
             override fun onResponse(call: Call<StatementResponse>, response: Response<StatementResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful && response.body()?.status == "success") {
-                    // عكس الترتيب (.reversed) لكي تظهر أحدث الحركات في أعلى الشاشة
                     val transactions = response.body()?.data?.reversed() ?: emptyList()
 
                     if (transactions.isEmpty()) {
@@ -49,6 +55,7 @@ class StatementActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<StatementResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 Toast.makeText(this@StatementActivity, "تأكد من اتصالك بالإنترنت", Toast.LENGTH_SHORT).show()
             }
         })

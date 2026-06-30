@@ -37,6 +37,9 @@ class AutoExamsListActivity : BaseActivity() {
         rvExams.layoutManager = LinearLayoutManager(this)
 
         loadAvailableExams()
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadAvailableExams() }
     }
 
     private fun loadAvailableExams() {
@@ -47,6 +50,7 @@ class AutoExamsListActivity : BaseActivity() {
                     call: Call<AutoExamListResponse>,
                     response: Response<AutoExamListResponse>
                 ) {
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     progressBar.visibility = View.GONE
                     android.util.Log.d("EXAMS_DEBUG", "Response: ${response.code()}, Body: ${response.body()}")
                     if (response.isSuccessful && response.body()?.status == "success") {
@@ -67,8 +71,9 @@ class AutoExamsListActivity : BaseActivity() {
                 }
 
                 override fun onFailure(call: Call<AutoExamListResponse>, t: Throwable) {
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     progressBar.visibility = View.GONE
-                    showEmptyMessage()
+                    Toast.makeText(this@AutoExamsListActivity, "خطأ في الاتصال بالخادم", Toast.LENGTH_SHORT).show()
                 }
             })
     }

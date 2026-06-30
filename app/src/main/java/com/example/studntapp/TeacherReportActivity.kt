@@ -40,6 +40,9 @@ class TeacherReportActivity : BaseActivity() {
         role = prefs.getString("USER_ROLE", "student") ?: "student"
 
         loadTeacherSubjects()
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { loadTeacherSubjects() }
     }
 
     private fun loadTeacherSubjects() {
@@ -47,6 +50,7 @@ class TeacherReportActivity : BaseActivity() {
         RetrofitClient.instance.getEnrolledSubjects(studentId = userId, role = role)
             .enqueue(object : Callback<SubjectListResponse> {
                 override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     if (response.isSuccessful) {
                         val subjects = response.body()?.data ?: emptyList()
                         if (subjects.isEmpty()) {
@@ -64,8 +68,10 @@ class TeacherReportActivity : BaseActivity() {
                         Toast.makeText(this@TeacherReportActivity, "خطأ في قراءة البيانات", Toast.LENGTH_SHORT).show()
                     }
                 }
+
                 override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
-                    Toast.makeText(this@TeacherReportActivity, "تأكد من الاتصال بالإنترنت", Toast.LENGTH_SHORT).show()
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
+                    Toast.makeText(this@TeacherReportActivity, "خطأ في الاتصال بالخادم", Toast.LENGTH_SHORT).show()
                 }
             })
     }
@@ -145,19 +151,23 @@ class ReportSubjectsAdapter(
 //        holder.group.text = groupTag ?: ""
 //        holder.group.visibility = if (groupTag != null) View.VISIBLE else View.GONE
 
-        // فقاعة الحالة: مكتملة (أخضر فاتح) / نشطة
+        // فقاعة الحالة: مكتملة (outline رمادي + strikethrough) / نشطة (filled green)
         val raw = item.status?.trim()?.lowercase()
         when {
             raw == "completed" || raw == "complete" || raw == "done" || raw == "finished" || raw == "مكتملة" -> {
-                holder.status.text = "مكتملة"
+                holder.status.text = "  مكتملة  "
                 holder.status.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_completed)
-                holder.status.setTextColor(Color.parseColor("#166534"))
+                holder.status.setTextColor(ContextCompat.getColor(ctx, R.color.status_completed_text))
+                holder.status.paintFlags = holder.status.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+                holder.status.letterSpacing = 0.05f
                 holder.status.visibility = View.VISIBLE
             }
             raw == "active" || raw == "نشطة" || raw == "ongoing" -> {
                 holder.status.text = "نشطة"
                 holder.status.background = ContextCompat.getDrawable(ctx, R.drawable.bg_status_active)
-                holder.status.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
+                holder.status.setTextColor(ContextCompat.getColor(ctx, R.color.status_active_text))
+                holder.status.paintFlags = holder.status.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                holder.status.letterSpacing = 0f
                 holder.status.visibility = View.VISIBLE
             }
             else -> holder.status.visibility = View.GONE

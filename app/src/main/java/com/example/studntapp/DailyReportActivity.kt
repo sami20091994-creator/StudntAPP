@@ -39,12 +39,32 @@ class DailyReportActivity : BaseActivity() {
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         val studentId = prefs.getInt("USER_ID", 0)
 
-        // ====== الإعلانات من الخادم ======
-        loadAnnouncements(studentId, rvAnn, tvAnnEmpty)
+        // زر "عرض الكل" → صفحة كل الإعلانات.
+        findViewById<TextView>(R.id.tvAnnSeeAll).setOnClickListener {
+            startActivity(Intent(this, AllAnnouncementsActivity::class.java))
+            overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
+        }
 
-        // ====== التقرير اليومي / اختبارات اليوم ======
+        // زر "عرض سجل الاختبارات" → صفحة السجل المؤرّخ.
+        findViewById<TextView>(R.id.tvShowExamHistory).setOnClickListener {
+            startActivity(Intent(this, ExamHistoryActivity::class.java))
+            overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
+        }
+
+        loadAnnouncements(studentId, rvAnn, tvAnnEmpty)
+        loadDailyReport(studentId, tvDate, prefs, rvQuizzes, tvQuizzesEmpty)
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener {
+            loadAnnouncements(studentId, rvAnn, tvAnnEmpty)
+            loadDailyReport(studentId, tvDate, prefs, rvQuizzes, tvQuizzesEmpty)
+        }
+    }
+
+    private fun loadDailyReport(studentId: Int, tvDate: TextView, prefs: android.content.SharedPreferences, rvQuizzes: RecyclerView, tvQuizzesEmpty: TextView) {
         RetrofitClient.instance.getDailyReport(studentId = studentId).enqueue(object : Callback<DailyReportResponse> {
             override fun onResponse(call: Call<DailyReportResponse>, response: Response<DailyReportResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful && response.body()?.status == "success") {
                     val data = response.body()?.data
                     tvDate.text = "تقرير يوم: ${data?.date ?: "اليوم"}"
@@ -66,6 +86,7 @@ class DailyReportActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<DailyReportResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 tvQuizzesEmpty.text = "تعذّر الاتصال بالخادم"
                 tvQuizzesEmpty.visibility = View.VISIBLE
                 rvQuizzes.visibility = View.GONE
@@ -76,6 +97,7 @@ class DailyReportActivity : BaseActivity() {
     private fun loadAnnouncements(userId: Int, rv: RecyclerView, empty: TextView) {
         RetrofitClient.instance.getAnnouncements(userId = userId).enqueue(object : Callback<AnnouncementResponse> {
             override fun onResponse(call: Call<AnnouncementResponse>, response: Response<AnnouncementResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 val list = response.body()?.data ?: emptyList()
                 if (list.isEmpty()) {
                     empty.visibility = View.VISIBLE
@@ -87,6 +109,7 @@ class DailyReportActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<AnnouncementResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 empty.text = "تعذّر تحميل الإعلانات"
                 empty.visibility = View.VISIBLE
                 rv.visibility = View.GONE

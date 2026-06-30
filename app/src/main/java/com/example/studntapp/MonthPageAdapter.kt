@@ -32,6 +32,8 @@ class MonthPageAdapter(
     private val ymf = SimpleDateFormat("yyyy-MM", Locale.ENGLISH)
     // ym -> (date -> عناوين الأحداث)
     private val scheduleByMonth = HashMap<String, Map<String, List<String>>>()
+    // خريطة مسطّحة date -> أحداث (تشمل أشهراً مجاورة) ليظهر الحدث على أيام التعبئة (آخر/أول السطر).
+    private val scheduleByDate = HashMap<String, List<String>>()
 
     var selectedDate: String = sdf.format(Date())
     var expanded: Boolean = true // true = شهر كامل، false = صف الأسبوع
@@ -52,9 +54,14 @@ class MonthPageAdapter(
         return CENTER + months
     }
 
-    fun setMonthSchedule(ym: String, byDate: Map<String, List<String>>) {
+    /**
+     * تحديث أحداث شهر معيّن وتحديث صفحته فقط (notifyItemChanged) بدل notifyDataSetChanged
+     * الذي يسبب وميض/اختفاء النقاط عند التقليب بين صفحات الـViewPager2.
+     */
+    fun setMonthSchedule(position: Int, ym: String, byDate: Map<String, List<String>>) {
         scheduleByMonth[ym] = byDate
-        notifyDataSetChanged()
+        scheduleByDate.putAll(byDate) // دمج بالخريطة المسطّحة لتظهر أحداث أيام التعبئة
+        notifyItemChanged(position)
     }
 
     private fun col(id: Int) = ContextCompat.getColor(ctx, id)
@@ -116,9 +123,12 @@ class MonthPageAdapter(
         val rendered = if (expanded) weeks
             else listOf(weeks.firstOrNull { wk -> wk.any { it.date == selectedDate } } ?: weeks.first())
 
+        val todayStr = sdf.format(Date())
         for (wk in rendered) for (c in wk) {
             val isSel = c.date == selectedDate && c.inMonth
-            val titles = if (c.inMonth) sched[c.date] ?: emptyList() else emptyList()
+            val isToday = c.date == todayStr && c.inMonth
+            // أحداث لكل الخلايا بما فيها أيام التعبئة (الشهر المجاور) من الخريطة المسطّحة.
+            val titles = scheduleByDate[c.date] ?: (if (c.inMonth) sched[c.date] ?: emptyList() else emptyList())
             val hasEvent = titles.isNotEmpty()
             val cellH = if (expanded) px(54) else px(50)
             val cell = LinearLayout(ctx).apply {
@@ -132,7 +142,16 @@ class MonthPageAdapter(
             // مربع الاختيار: رقم اليوم مُحاذى في وسطه تماماً.
             val numBox = android.widget.FrameLayout(ctx).apply {
                 layoutParams = LinearLayout.LayoutParams(px(32), px(32))
-                if (isSel) background = GradientDrawable().apply { cornerRadius = px(16).toFloat(); setColor(primary()) }
+                // اليوم المحدّد = مربع ممتلئ. اليوم الحالي (غير المحدّد) = مربع مفرّغ بإطار ذهبي رفيع.
+                background = when {
+                    isSel -> GradientDrawable().apply { cornerRadius = px(16).toFloat(); setColor(primary()) }
+                    isToday -> GradientDrawable().apply {
+                        cornerRadius = px(16).toFloat()
+                        setColor(Color.TRANSPARENT)
+                        setStroke((1.5f * d).toInt().coerceAtLeast(2), col(R.color.gold))
+                    }
+                    else -> null
+                }
                 addView(TextView(ctx).apply {
                     text = c.day.toString(); textSize = 15f; setTypeface(null, Typeface.BOLD)
                     gravity = Gravity.CENTER
@@ -141,6 +160,7 @@ class MonthPageAdapter(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT)
                     setTextColor(when {
                         isSel -> Color.WHITE
+                        isToday -> col(R.color.gold)
                         !c.inMonth -> col(R.color.ink_faint)
                         else -> col(R.color.ink)
                     })

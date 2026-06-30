@@ -170,46 +170,52 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
 
-        <FrameLayout
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvSubjects"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingTop="8dp"
-                android:paddingBottom="12dp" />
+                android:layout_height="match_parent">
 
-            <!-- حالة عدم وجود محتوى تعليمي -->
-            <LinearLayout
-                android:id="@+id/emptyState"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:visibility="gone">
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvSubjects"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="12dp" />
 
-                <ImageView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:alpha="0.1"
-                    android:contentDescription="لا يوجد محتوى"
-                    android:src="@drawable/ic_empty_box" />
-
-                <TextView
+                <!-- حالة عدم وجود محتوى تعليمي -->
+                <LinearLayout
+                    android:id="@+id/emptyState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:alpha="0.45"
-                    android:text="لا يوجد محتوى تعليمي"
-                    android:textColor="@color/ink_muted"
-                    android:textSize="15sp" />
-            </LinearLayout>
-        </FrameLayout>
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:alpha="0.1"
+                        android:contentDescription="لا يوجد محتوى"
+                        android:src="@drawable/ic_empty_box" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:alpha="0.45"
+                        android:text="لا يوجد محتوى تعليمي"
+                        android:textColor="@color/ink_muted"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </FrameLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </LinearLayout>
     <!-- fabUpload نُقل إلى activity_base ليُحاذى زر الرسائل بدقّة -->
 

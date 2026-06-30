@@ -27,8 +27,16 @@ class StudyHoursActivity : BaseActivity() {
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         studentId = prefs.getInt("USER_ID", 0)
 
+        loadSubjects(rv)
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadSubjects(rv) }
+    }
+    
+    private fun loadSubjects(rv: RecyclerView) {
         RetrofitClient.instance.getEnrolledSubjects(studentId = studentId).enqueue(object : Callback<SubjectListResponse> {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful) {
                     val activeSubjects = response.body()?.data?.filter { it.status == "active" } ?: emptyList()
                     val adapter = SubjectsAdapter(activeSubjects)
@@ -39,7 +47,9 @@ class StudyHoursActivity : BaseActivity() {
                     }
                 }
             }
-            override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {}
+            override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
+            }
         })
     }
 

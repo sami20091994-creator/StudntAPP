@@ -90,24 +90,30 @@ class SettingsActivity : BaseActivity() {
         setupThemeModeSpinner()
     }
 
-    // ===== قائمة منسدلة لوضع السطوع: فاتح / داكن / حسب الجهاز =====
+    // ===== أزرار وضع السطوع: فاتح / داكن / حسب الجهاز =====
     private fun setupThemeModeSpinner() {
-        val spinner = findViewById<android.widget.Spinner>(R.id.spinnerThemeMode)
-        val labels = listOf("فاتح (Light)", "داكن (Dark)", "حسب الجهاز (As Device)")
-        val modes = listOf(ThemeManager.MODE_LIGHT, ThemeManager.MODE_DARK, ThemeManager.MODE_SYSTEM)
-        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
-        // الاختيار الحالي بلا إطلاق حدث
-        spinner.setSelection(modes.indexOf(ThemeManager.savedMode(this)).coerceAtLeast(0), false)
-        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                if (modes[pos] != ThemeManager.savedMode(this@SettingsActivity)) {
-                    ThemeManager.setMode(this@SettingsActivity, modes[pos])
-                    ThemeManager.circularRecreateNight(this@SettingsActivity, spinner)
+        val toggleGroup = findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.themeModeToggleGroup)
+        val currentMode = ThemeManager.savedMode(this)
+        
+        when (currentMode) {
+            ThemeManager.MODE_LIGHT -> toggleGroup.check(R.id.btnModeLight)
+            ThemeManager.MODE_DARK -> toggleGroup.check(R.id.btnModeDark)
+            else -> toggleGroup.check(R.id.btnModeSystem)
+        }
+
+        toggleGroup.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            if (isChecked) {
+                val selectedMode = when (checkedId) {
+                    R.id.btnModeLight -> ThemeManager.MODE_LIGHT
+                    R.id.btnModeDark -> ThemeManager.MODE_DARK
+                    else -> ThemeManager.MODE_SYSTEM
+                }
+                
+                if (selectedMode != ThemeManager.savedMode(this@SettingsActivity)) {
+                    ThemeManager.setMode(this@SettingsActivity, selectedMode)
+                    ThemeManager.circularRecreateNight(this@SettingsActivity, group)
                 }
             }
-            override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
     }
 

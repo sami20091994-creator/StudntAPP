@@ -118,6 +118,12 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
     private var cachedNotifs: List<NotificationData>? = null
 
     private fun setupShellExtras() {
+        // ضغط مطوّل → لمحة عن وظيفة الأزرار العائمة + الجرس.
+        findViewById<View?>(R.id.fabMessages)?.let { androidx.appcompat.widget.TooltipCompat.setTooltipText(it, "الرسائل") }
+        findViewById<View?>(R.id.fabToday)?.let { androidx.appcompat.widget.TooltipCompat.setTooltipText(it, "العودة إلى اليوم") }
+        findViewById<View?>(R.id.fabUpload)?.let { androidx.appcompat.widget.TooltipCompat.setTooltipText(it, "رفع ملف") }
+        findViewById<View?>(R.id.btnNotifBell)?.let { androidx.appcompat.widget.TooltipCompat.setTooltipText(it, "الإشعارات") }
+
         // الزر العائم للرسائل: يظهر في كل الشاشات عدا شاشة الرسائل نفسها.
         findViewById<FloatingActionButton?>(R.id.fabMessages)?.let { fab ->
             if (this is MessagesActivity) {
@@ -404,6 +410,40 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
             val url = if (img.startsWith("http")) img else RetrofitClient.BASE_URL + img
             Glide.with(this).load(url).placeholder(R.mipmap.ic_launcher_round).into(ivNavPhoto)
         }
+
+        // زر أعلى الشريط: أفاتار دائري بحدّ واضح. صورة الطالب من الـAPI، وإلا الصورة الافتراضية بالإعدادات.
+        val userName = prefs.getString("USER_NAME", "مستخدم") ?: "مستخدم"
+        val sizePx = (34 * resources.displayMetrics.density).toInt()
+        toolbar.navigationContentDescription = userName
+        // نموذج التحميل: رابط الصورة إن وُجد، وإلا الصورة الافتراضية (نفس ما تعرضه الإعدادات).
+        val avatarModel: Any =
+            if (!img.isNullOrEmpty()) (if (img.startsWith("http")) img else RetrofitClient.BASE_URL + img)
+            else R.mipmap.ic_launcher_round
+        Glide.with(this).asDrawable().load(avatarModel).circleCrop().override(sizePx, sizePx)
+            .into(object : com.bumptech.glide.request.target.CustomTarget<android.graphics.drawable.Drawable>() {
+                override fun onResourceReady(resource: android.graphics.drawable.Drawable, transition: com.bumptech.glide.request.transition.Transition<in android.graphics.drawable.Drawable>?) {
+                    val ringed = ringedAvatar(resource, sizePx)
+                    supportActionBar?.setHomeAsUpIndicator(ringed)
+                    toolbar.navigationIcon = ringed
+                    toolbar.navigationContentDescription = userName
+                }
+                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
+            })
+    }
+
+    /** يلفّ صورة دائرية بحدّ (ring) متباين مع الشريط العلوي ليظهر الأفاتار بوضوح فوقه. */
+    private fun ringedAvatar(content: android.graphics.drawable.Drawable, sizePx: Int): android.graphics.drawable.Drawable {
+        val ringPx = (2.2f * resources.displayMetrics.density).toInt().coerceAtLeast(2)
+        // حدّ أبيض يتباين مع colorPrimary في النهاري والليلي.
+        val ring = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(android.graphics.Color.TRANSPARENT)
+            setStroke(ringPx, android.graphics.Color.WHITE)
+        }
+        val layer = android.graphics.drawable.LayerDrawable(arrayOf(content, ring))
+        layer.setLayerInset(0, ringPx, ringPx, ringPx, ringPx) // الصورة داخل الحدّ
+        layer.setBounds(0, 0, sizePx, sizePx)
+        return layer
     }
 
     // ===== الشريط السفلي (4 وجهات) =====
@@ -426,6 +466,13 @@ open class BaseActivity : AppCompatActivity(), NavigationView.OnNavigationItemSe
         tabSchedule.setOnClickListener { navigateMainTab(1) }
         tabMaterials.setOnClickListener { navigateMainTab(2) }
         tabReports.setOnClickListener { navigateMainTab(3) }
+
+        // ضغط مطوّل → لمحة عن وظيفة الزر.
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(tabHome, "الرئيسية")
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(tabSchedule, "التقويم والجدول")
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(tabMaterials, "المواد والملفّات")
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(tabReports, "التقارير")
+
         highlightActiveTab()
     }
 

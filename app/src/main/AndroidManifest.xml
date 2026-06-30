@@ -58,6 +58,8 @@
         <activity android:name=".HomeShellActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".AnnouncementDetailActivity" android:exported="false" />
+        <activity android:name=".AllAnnouncementsActivity" android:exported="false" />
+        <activity android:name=".ExamHistoryActivity" android:exported="false" />
         <activity android:name=".SubjectsActivity" android:exported="false" />
         <activity android:name=".CalendarActivity" android:exported="false" />
         <activity android:name=".StudyHoursActivity" android:exported="false" />

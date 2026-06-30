@@ -27,13 +27,14 @@ class CalendarFragment : Fragment() {
     private var userId = 0
 
     private lateinit var rvDaily: RecyclerView
-    private lateinit var rvDayEvents: RecyclerView
     private lateinit var viewDaily: LinearLayout
-    private lateinit var viewWeekly: ScrollView
+    private lateinit var dayPager: androidx.viewpager2.widget.ViewPager2
+    private lateinit var dayAdapter: DayPagerAdapter
+    private lateinit var viewWeekly: androidx.viewpager2.widget.ViewPager2
+    private lateinit var weekAdapter: WeekPagerAdapter
     private lateinit var viewMonthly: ScrollView
     private lateinit var viewYearly: androidx.viewpager2.widget.ViewPager2
     private lateinit var yearAdapter: YearPagerAdapter
-    private lateinit var weeklyGrid: LinearLayout
     private lateinit var monthlyGrid: GridLayout
     private lateinit var layoutNavHeader: LinearLayout
     private lateinit var tvPeriodName: TextView
@@ -41,11 +42,7 @@ class CalendarFragment : Fragment() {
     private lateinit var monthPager: androidx.viewpager2.widget.ViewPager2
     private lateinit var monthAdapter: MonthPageAdapter
     private lateinit var tvDailyMonth: TextView
-    private lateinit var tvDayCardYM: TextView
-    private lateinit var tvDayCardNum: TextView
-    private lateinit var tvDayCardWeek: TextView
     private lateinit var calBlock: LinearLayout
-    private lateinit var dayCard: androidx.cardview.widget.CardView
     private lateinit var fabToday: com.google.android.material.floatingactionbutton.FloatingActionButton
     private lateinit var swipeNav: SwipeNavLayout
     private lateinit var root: View
@@ -64,6 +61,20 @@ class CalendarFragment : Fragment() {
         return tv.data
     }
 
+    /** لون نص متباين فوق خلفية (أبيض للداكنة، أسود للفاتحة) — يمنع تعارض النص مع لون الثيم. */
+    private fun contrastTextOn(bg: Int): Int {
+        val lum = (0.299 * android.graphics.Color.red(bg) +
+            0.587 * android.graphics.Color.green(bg) +
+            0.114 * android.graphics.Color.blue(bg)) / 255.0
+        return if (lum > 0.6) android.graphics.Color.parseColor("#1A1A1A") else android.graphics.Color.WHITE
+    }
+
+    /** هل انصرم الحدث (تاريخ + وقت النهاية قبل الآن)؟ */
+    private fun isPastEvent(dateStr: String, endHHmm: String): Boolean = try {
+        val end = endHHmm.ifEmpty { "23:59" }
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ENGLISH).parse("$dateStr $end")?.before(Date()) ?: false
+    } catch (e: Exception) { false }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         root = inflater.inflate(R.layout.activity_calendar, container, false)
         return root
@@ -78,27 +89,22 @@ class CalendarFragment : Fragment() {
 
         rvDaily = view.findViewById(R.id.rvDaily)
         rvDaily.layoutManager = LinearLayoutManager(ctx)
-        rvDayEvents = view.findViewById(R.id.rvDayEvents)
-        rvDayEvents.layoutManager = LinearLayoutManager(ctx)
         viewDaily = view.findViewById(R.id.viewDaily)
+        dayPager = view.findViewById(R.id.dayPager)
         viewWeekly = view.findViewById(R.id.viewWeekly)
         viewMonthly = view.findViewById(R.id.viewMonthly)
         viewYearly = view.findViewById(R.id.viewYearly)
         setupYearPager()
-        weeklyGrid = view.findViewById(R.id.weeklyGrid)
+        setupWeekPager()
+        setupDayPager()
         monthlyGrid = view.findViewById(R.id.monthlyGrid)
         layoutNavHeader = view.findViewById(R.id.layoutNavHeader)
         tvPeriodName = view.findViewById(R.id.tvPeriodName)
         tvDailyTitle = view.findViewById(R.id.tvDailyTitle)
         monthPager = view.findViewById(R.id.monthPager)
         tvDailyMonth = view.findViewById(R.id.tvDailyMonth)
-        tvDayCardYM = view.findViewById(R.id.tvDayCardYM)
-        tvDayCardNum = view.findViewById(R.id.tvDayCardNum)
-        tvDayCardWeek = view.findViewById(R.id.tvDayCardWeek)
         calBlock = view.findViewById(R.id.calBlock)
-        dayCard = view.findViewById(R.id.dayCard)
         setupMonthPager()
-        updateDayCard()
 
         view.findViewById<TextView>(R.id.btnDaily).setOnClickListener { switchViewMode("daily") }
         view.findViewById<TextView>(R.id.btnWeekly).setOnClickListener { switchViewMode("weekly") }
@@ -108,14 +114,9 @@ class CalendarFragment : Fragment() {
         view.findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { adjustDate(-1) }
         view.findViewById<ImageButton>(R.id.btnNext).setOnClickListener { adjustDate(1) }
 
+        // كل الأوضاع تعتمد ViewPager2 الآن — تعطيل اعتراض السحب القديم.
         swipeNav = view.findViewById(R.id.swipeNav)
-        swipeNav.onSwipe = { dir ->
-            when (currentViewMode) {
-                "daily" -> shiftDay(dir)
-                "weekly" -> { adjustDate(dir); slideIn(viewWeekly, dir) }
-                // الشهري والسنوي يعتمدان سحب الـViewPager الأصلي.
-            }
-        }
+        swipeNav.interceptEnabled = false
 
         fabToday = requireActivity().findViewById(R.id.fabToday)
         fabToday.setOnClickListener { goToToday() }
@@ -139,20 +140,24 @@ class CalendarFragment : Fragment() {
             tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
             updateDayCard()
             loadSchedule()
+            // نقر يوم خارج الشهر المعروض → انزلاق سلس لذلك الشهر (التالي/السابق).
+            val page = monthAdapter.pageForDate(date)
+            if (page != monthPager.currentItem) monthPager.setCurrentItem(page, true)
         }
         monthAdapter.selectedDate = selectedDateStr
         monthPager.adapter = monthAdapter
+        monthPager.layoutDirection = View.LAYOUT_DIRECTION_RTL
         monthPager.isUserInputEnabled = true
         monthPager.setCurrentItem(MonthPageAdapter.CENTER, false)
         tvDailyMonth.text = monthFormat.format(sdfApi.parse(selectedDateStr)!!)
         monthPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 tvDailyMonth.text = monthFormat.format(monthAdapter.monthCal(position).time)
-                fetchMonthEvents(monthAdapter.ymOf(position))
+                fetchMonthEvents(position)
                 updateTodayFab()
             }
         })
-        fetchMonthEvents(monthAdapter.ymOf(MonthPageAdapter.CENTER))
+        fetchMonthEvents(MonthPageAdapter.CENTER)
         setupCalCollapse()
     }
 
@@ -207,32 +212,38 @@ class CalendarFragment : Fragment() {
         val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
         cal.add(Calendar.DAY_OF_MONTH, dir)
         selectedDateStr = sdfApi.format(cal.time)
-        syncToSelectedDate(smooth = false)
-        slideIn(viewDaily, dir)
+        syncToSelectedDate(smooth = false) // السحب يتبع الإصبع؛ بلا أنيميشن لاحق
     }
 
     private fun slideIn(v: View, dir: Int, frac: Float = 0.35f) {
         val w = (if (v.width > 0) v.width else resources.displayMetrics.widthPixels).toFloat()
-        v.translationX = dir * w * frac
+        // RTL: التالي (+1) يدخل من اليسار، السابق (-1) من اليمين — لذلك نعكس الإشارة.
+        v.translationX = -dir * w * frac
         v.alpha = 0.3f
         v.animate().translationX(0f).alpha(1f).setDuration(if (frac >= 1f) 320 else 280).start()
     }
 
+    /** يعيد النافذة الحالية فقط إلى موضع اليوم/الأسبوع/الشهر/السنة الحالية — بلا تأثير على بقية النوافذ. */
     private fun goToToday() {
-        val dir = if (sdfApi.format(Date()) > selectedDateStr) 1 else -1
-        selectedDateStr = sdfApi.format(Date())
+        val today = sdfApi.format(Date())
         when (currentViewMode) {
             "yearly" -> {
-                val y = Calendar.getInstance().get(Calendar.YEAR)
+                val page = yearAdapter.pageForYear(Calendar.getInstance().get(Calendar.YEAR))
                 val cur = viewYearly.currentItem
-                val page = yearAdapter.pageForYear(y)
                 if (Math.abs(cur - page) > 1) viewYearly.setCurrentItem(if (page > cur) page - 1 else page + 1, false)
                 viewYearly.post { viewYearly.setCurrentItem(page, true) }
-                updateTodayFab()
             }
-            "weekly" -> { syncToSelectedDate(smooth = true); slideIn(viewWeekly, dir, 1f) }
-            else -> { syncToSelectedDate(smooth = true); slideIn(viewDaily, dir, 1f) }
+            "weekly" -> viewWeekly.setCurrentItem(weekAdapter.pageForDate(today), true)
+            "daily" -> dayPager.setCurrentItem(dayAdapter.pageForDate(today), true)
+            "monthly" -> {
+                selectedDateStr = today
+                monthAdapter.selectedDate = today
+                monthPager.setCurrentItem(monthAdapter.pageForDate(today), true)
+                tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
+                loadSchedule()
+            }
         }
+        updateTodayFab()
     }
 
     private fun syncToSelectedDate(smooth: Boolean = false) {
@@ -256,11 +267,45 @@ class CalendarFragment : Fragment() {
     private fun setupYearPager() {
         yearAdapter = YearPagerAdapter(ctx) { y, m -> openMonth(y, m) }
         viewYearly.adapter = yearAdapter
+        viewYearly.layoutDirection = View.LAYOUT_DIRECTION_RTL
         viewYearly.isUserInputEnabled = true
         viewYearly.offscreenPageLimit = 1
+        // تسريع التنقّل: كاش أكبر لإعادة استخدام صفحات السنوات المزارة بلا إعادة بناء/ربط ثقيل.
+        (viewYearly.getChildAt(0) as? RecyclerView)?.setItemViewCacheSize(6)
         viewYearly.setCurrentItem(YearPagerAdapter.CENTER, false)
         viewYearly.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) { updateTodayFab() }
+        })
+    }
+
+    private fun setupWeekPager() {
+        weekAdapter = WeekPagerAdapter(ctx, userId, role)
+        viewWeekly.adapter = weekAdapter
+        viewWeekly.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        viewWeekly.offscreenPageLimit = 1
+        viewWeekly.setCurrentItem(weekAdapter.pageForDate(selectedDateStr), false)
+        viewWeekly.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                // الأسبوعي مستقل: لا يلمس selectedDateStr (الخاص بالشهري) — فقط رأس الصفحة والـFAB.
+                if (currentViewMode != "weekly") return
+                updateHeaderTitles()
+                updateTodayFab()
+            }
+        })
+    }
+
+    private fun setupDayPager() {
+        dayAdapter = DayPagerAdapter(ctx, userId, role)
+        dayPager.adapter = dayAdapter
+        dayPager.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        dayPager.offscreenPageLimit = 1
+        dayPager.setCurrentItem(dayAdapter.pageForDate(selectedDateStr), false)
+        dayPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                // اليومي مستقل: لا يلمس selectedDateStr (الخاص بالشهري) — فقط الـFAB.
+                if (currentViewMode != "daily") return
+                updateTodayFab()
+            }
         })
     }
 
@@ -272,14 +317,16 @@ class CalendarFragment : Fragment() {
         switchViewMode("monthly")
     }
 
-    private fun updateDayCard() {
-        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        tvDayCardYM.text = "${cal.get(Calendar.YEAR)} / ${cal.get(Calendar.MONTH) + 1}"
-        tvDayCardNum.text = cal.get(Calendar.DAY_OF_MONTH).toString()
-        tvDayCardWeek.text = SimpleDateFormat("EEEE", Locale("ar")).format(cal.time)
+    /** اليومي مستقل عن الشهري — لم يعد يُزامَن مع التاريخ المحدّد. (مُبقاة للتوافق). */
+    private fun updateDayCard() { /* no-op: عزل موضع اليومي */ }
+
+    // نجلب الشهر المعروض + المجاورين ليظهر حدث أيام التعبئة (آخر/أول السطر) على الصفحة الحالية.
+    private fun fetchMonthEvents(displayPosition: Int) {
+        for (p in (displayPosition - 1)..(displayPosition + 1)) fetchMonthInto(p, displayPosition)
     }
 
-    private fun fetchMonthEvents(ym: String) {
+    private fun fetchMonthInto(fetchPosition: Int, refreshPosition: Int) {
+        val ym = monthAdapter.ymOf(fetchPosition)
         RetrofitClient.instance.getFullScheduleFiltered(
             userId = userId, role = role, date = "$ym-01", viewMode = "monthly"
         ).enqueue(object : Callback<List<ScheduleData>> {
@@ -292,16 +339,18 @@ class CalendarFragment : Fragment() {
                             .add(ev.subjectName ?: "حصة")
                     }
                 }
-                monthAdapter.setMonthSchedule(ym, byDate)
+                monthAdapter.setMonthSchedule(refreshPosition, ym, byDate)
             }
             override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) {}
         })
     }
 
     private fun adjustDate(amount: Int) {
+        // اليومي/الأسبوعي يتنقّلان عبر صفحات الـViewPager.
+        if (currentViewMode == "daily") { dayPager.setCurrentItem(dayPager.currentItem + amount, true); return }
+        if (currentViewMode == "weekly") { viewWeekly.setCurrentItem(viewWeekly.currentItem + amount, true); return }
         val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        if (currentViewMode == "weekly") cal.add(Calendar.WEEK_OF_YEAR, amount)
-        else if (currentViewMode == "monthly") cal.add(Calendar.MONTH, amount)
+        if (currentViewMode == "monthly") cal.add(Calendar.MONTH, amount)
         selectedDateStr = sdfApi.format(cal.time)
         updateHeaderTitles()
         loadSchedule()
@@ -309,7 +358,8 @@ class CalendarFragment : Fragment() {
 
     private fun switchViewMode(mode: String) {
         currentViewMode = mode
-        if (::swipeNav.isInitialized) swipeNav.interceptEnabled = mode != "monthly" && mode != "yearly"
+        // كل الأوضاع ViewPager2 — اعتراض السحب القديم معطّل.
+        if (::swipeNav.isInitialized) swipeNav.interceptEnabled = false
         val btnD = root.findViewById<TextView>(R.id.btnDaily)
         val btnW = root.findViewById<TextView>(R.id.btnWeekly)
         val btnM = root.findViewById<TextView>(R.id.btnMonthly)
@@ -330,20 +380,22 @@ class CalendarFragment : Fragment() {
                 btnD.apply { background = ContextCompat.getDrawable(ctx, R.drawable.bg_toggle_active); setTextColor(col(R.color.white)) }
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.GONE
-                dayCard.visibility = View.VISIBLE
+                dayPager.visibility = View.VISIBLE
                 tvDailyTitle.visibility = View.GONE
                 rvDaily.visibility = View.GONE
+                // لا نعيد الموضع — اليومي يحتفظ بصفحته المستقلة.
             }
             "weekly" -> {
                 btnW.apply { background = ContextCompat.getDrawable(ctx, R.drawable.bg_toggle_active); setTextColor(col(R.color.white)) }
                 viewWeekly.visibility = View.VISIBLE
                 layoutNavHeader.visibility = View.VISIBLE
+                // لا نعيد الموضع — الأسبوعي يحتفظ بصفحته المستقلة.
             }
             "monthly" -> {
                 btnM.apply { background = ContextCompat.getDrawable(ctx, R.drawable.bg_toggle_active); setTextColor(col(R.color.white)) }
                 viewDaily.visibility = View.VISIBLE
                 calBlock.visibility = View.VISIBLE
-                dayCard.visibility = View.GONE
+                dayPager.visibility = View.GONE
                 tvDailyTitle.visibility = View.VISIBLE
                 rvDaily.visibility = View.VISIBLE
                 tvDailyTitle.text = "حصص تاريخ: $selectedDateStr"
@@ -360,29 +412,32 @@ class CalendarFragment : Fragment() {
     }
 
     private fun updateHeaderTitles() {
-        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        if (currentViewMode == "weekly") tvPeriodName.text = "أسبوع: $selectedDateStr"
-        else if (currentViewMode == "monthly") tvPeriodName.text = monthFormat.format(cal.time)
+        if (currentViewMode == "weekly")
+            tvPeriodName.text = "أسبوع: ${sdfApi.format(weekAdapter.weekStart(viewWeekly.currentItem).time)}"
+        else if (currentViewMode == "monthly")
+            tvPeriodName.text = monthFormat.format(monthAdapter.monthCal(monthPager.currentItem).time)
     }
 
+    /** حالة FAB معزولة لكل نافذة حسب موضع صفحتها هي فقط — يظهر فقط عند الابتعاد عن اليوم/الأسبوع/الشهر/السنة الحالية. */
     private fun updateTodayFab() {
         if (!::fabToday.isInitialized) return
-        val t = Calendar.getInstance()
-        val s = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
+        val today = sdfApi.format(Date())
+        val thisYear = Calendar.getInstance().get(Calendar.YEAR)
         val todayVisible = when (currentViewMode) {
-            "weekly" -> t.get(Calendar.YEAR) == s.get(Calendar.YEAR) && t.get(Calendar.WEEK_OF_YEAR) == s.get(Calendar.WEEK_OF_YEAR)
-            "yearly" -> t.get(Calendar.YEAR) == yearAdapter.yearOf(viewYearly.currentItem)
-            "monthly" -> {
-                val mc = monthAdapter.monthCal(monthPager.currentItem)
-                t.get(Calendar.YEAR) == mc.get(Calendar.YEAR) && t.get(Calendar.MONTH) == mc.get(Calendar.MONTH)
-            }
-            else -> selectedDateStr == sdfApi.format(Date())
+            "yearly" -> viewYearly.currentItem == yearAdapter.pageForYear(thisYear)
+            "weekly" -> viewWeekly.currentItem == weekAdapter.pageForDate(today)
+            "daily" -> dayPager.currentItem == dayAdapter.pageForDate(today)
+            // الشهري: صفحة شهر اليوم الحالي + اليوم المحدّد هو اليوم.
+            "monthly" -> monthPager.currentItem == monthAdapter.pageForDate(today) && selectedDateStr == today
+            else -> true
         }
         fabToday.visibility = if (todayVisible) View.GONE else View.VISIBLE
     }
 
     private fun loadSchedule() {
         updateTodayFab()
+        // اليومي/الأسبوعي يعرضان نفسيهما عبر ViewPager2 — لا جلب هنا. يبقى الشهري للقائمة السفلية.
+        if (currentViewMode == "daily" || currentViewMode == "weekly") return
         val fetchMode = if (currentViewMode == "monthly") "daily" else currentViewMode
         RetrofitClient.instance.getFullScheduleFiltered(
             userId = userId, role = role, date = selectedDateStr, viewMode = fetchMode
@@ -392,9 +447,7 @@ class CalendarFragment : Fragment() {
                 val list = response.body() ?: emptyList()
                 val sorted = list.sortedBy { it.startTime }
                 when (currentViewMode) {
-                    "daily" -> rvDayEvents.adapter = CalendarAdapter(sorted, selectedDateStr)
                     "monthly" -> rvDaily.adapter = CalendarAdapter(sorted, selectedDateStr)
-                    "weekly" -> renderWeeklyGrid(list)
                 }
             }
             override fun onFailure(call: Call<List<ScheduleData>>, t: Throwable) {
@@ -404,169 +457,4 @@ class CalendarFragment : Fragment() {
         })
     }
 
-    private fun renderWeeklyGrid(schedule: List<ScheduleData>) {
-        weeklyGrid.removeAllViews()
-        val startHour = 8
-        val endHour = 20
-        val dpToPx = resources.displayMetrics.density
-        val hourHeightPx = (60 * dpToPx).toInt()
-        val timeWidthPx = (44 * dpToPx).toInt()
-        val padPx = (16 * dpToPx).toInt()
-        val dayWidthPx = ((resources.displayMetrics.widthPixels - timeWidthPx - padPx) / 7) - (2 * dpToPx).toInt()
-
-        val timeCol = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(timeWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setBackgroundColor(col(R.color.canvas))
-        }
-        timeCol.addView(TextView(ctx).apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (50 * dpToPx).toInt()) })
-
-        for (h in startHour..endHour) {
-            val amPm = if (h < 12) "ص" else "م"
-            val displayH = if (h <= 12) h else h - 12
-            timeCol.addView(TextView(ctx).apply {
-                text = "$displayH:00 $amPm"
-                textSize = 11f
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, hourHeightPx)
-                setTextColor(col(R.color.ink_muted))
-            })
-        }
-        weeklyGrid.addView(timeCol)
-
-        val daysOfWeek = arrayOf("الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت")
-        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
-
-        for (i in 0..6) {
-            val dayDateStr = sdfApi.format(cal.time)
-            val dayCol = LinearLayout(ctx).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(dayWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = 2 }
-            }
-
-            dayCol.addView(TextView(ctx).apply {
-                text = "${daysOfWeek[i]}\n${cal.get(Calendar.DAY_OF_MONTH)}"
-                gravity = Gravity.CENTER
-                textSize = 13f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(col(R.color.ink))
-                setBackgroundColor(col(R.color.surface_alt))
-                layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (50 * dpToPx).toInt())
-            })
-
-            val frame = FrameLayout(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, (endHour - startHour + 1) * hourHeightPx)
-                setBackgroundColor(col(R.color.surface))
-            }
-
-            for (h in startHour..endHour) {
-                frame.addView(View(ctx).apply {
-                    layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, 1).apply { topMargin = (h - startHour) * hourHeightPx }
-                    setBackgroundColor(col(R.color.line))
-                })
-            }
-
-            val dayClasses = schedule.filter { it.startDate == dayDateStr }
-            for (c in dayClasses) {
-                val parts = c.startTime?.split(":") ?: listOf("0", "0")
-                val h = parts[0].toInt(); val m = parts[1].toInt()
-                val endParts = c.endTime?.split(":") ?: listOf("0", "0")
-                val endH = endParts[0].toInt(); val endM = endParts[1].toInt()
-                val topMarginMins = (h - startHour) * 60 + m
-                val topMarginPx = (topMarginMins * (hourHeightPx / 60.0)).toInt()
-                val durationMins = (endH * 60 + endM) - (h * 60 + m)
-                val heightPx = (durationMins * (hourHeightPx / 60.0)).toInt()
-
-                frame.addView(TextView(ctx).apply {
-                    text = "${c.subjectName}\n${c.classroom}"
-                    textSize = 11f
-                    setTextColor(col(R.color.white))
-                    setPadding(8, 8, 8, 8)
-                    gravity = Gravity.CENTER_HORIZONTAL
-                    background = GradientDrawable().apply { setColor(primaryColor()); cornerRadius = 12f }
-                    layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, heightPx).apply { setMargins(8, topMarginPx, 8, 0) }
-                })
-            }
-            dayCol.addView(frame)
-            weeklyGrid.addView(dayCol)
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-        }
-    }
-
-    private fun renderMonthlyGrid(schedule: List<ScheduleData>) {
-        monthlyGrid.removeAllViews()
-        val daysOfWeek = arrayOf("أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت")
-
-        for (day in daysOfWeek) {
-            monthlyGrid.addView(TextView(ctx).apply {
-                text = day
-                gravity = Gravity.CENTER
-                textSize = 13f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(col(R.color.ink_muted))
-                setBackgroundColor(col(R.color.surface_alt))
-                setPadding(0, 20, 0, 20)
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0; height = ViewGroup.LayoutParams.WRAP_CONTENT
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(1, 1, 1, 1)
-                }
-            })
-        }
-
-        val cal = Calendar.getInstance().apply { time = sdfApi.parse(selectedDateStr)!! }
-        cal.set(Calendar.DAY_OF_MONTH, 1)
-        val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1
-        val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-        for (i in 0 until firstDayOfWeek) {
-            monthlyGrid.addView(View(ctx).apply {
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0; height = (80 * resources.displayMetrics.density).toInt()
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(1, 1, 1, 1)
-                }
-                setBackgroundColor(col(R.color.canvas))
-            })
-        }
-
-        for (day in 1..daysInMonth) {
-            val cellDate = String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, day)
-            val dayClasses = schedule.filter { it.startDate == cellDate }
-            val cell = LinearLayout(ctx).apply {
-                orientation = LinearLayout.VERTICAL
-                setBackgroundColor(col(R.color.surface))
-                setPadding(4, 4, 4, 4)
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0; height = (80 * resources.displayMetrics.density).toInt()
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(1, 1, 1, 1)
-                }
-            }
-            cell.addView(TextView(ctx).apply {
-                text = day.toString()
-                textSize = 13f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(col(R.color.ink))
-            })
-            for (c in dayClasses.take(2)) {
-                cell.addView(TextView(ctx).apply {
-                    text = c.subjectName
-                    textSize = 9f
-                    setTextColor(col(R.color.white))
-                    maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    background = GradientDrawable().apply { setColor(primaryColor()); cornerRadius = 6f }
-                    setPadding(6, 2, 6, 2)
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 2 }
-                })
-            }
-            if (dayClasses.size > 2) {
-                cell.addView(TextView(ctx).apply { text = "+${dayClasses.size - 2}"; textSize = 8f; gravity = Gravity.CENTER; setTextColor(col(R.color.ink_muted)) })
-            }
-            monthlyGrid.addView(cell)
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-        }
-    }
 }

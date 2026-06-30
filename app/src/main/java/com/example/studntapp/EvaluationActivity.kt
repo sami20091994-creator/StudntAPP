@@ -51,9 +51,16 @@ class EvaluationActivity : BaseActivity() {
 
         val prefs = getSharedPreferences("AppSession", Context.MODE_PRIVATE)
         studentId = prefs.getInt("USER_ID", 0)
+        loadSubjects(rv)
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadSubjects(rv) }
+    }
 
+    private fun loadSubjects(rv: RecyclerView) {
         RetrofitClient.instance.getEnrolledSubjects(studentId = studentId).enqueue(object : Callback<SubjectListResponse> {
             override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 if (response.isSuccessful) {
                     val activeSubjects = response.body()?.data?.filter { it.status == "active" } ?: emptyList()
 
@@ -71,6 +78,7 @@ class EvaluationActivity : BaseActivity() {
                 }
             }
             override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                 android.util.Log.e("EVAL_FAIL", "getEnrolledSubjects failed (studentId=$studentId)", t)
                 val reason = t.message ?: t.javaClass.simpleName
                 Toast.makeText(this@EvaluationActivity, "خطأ في الاتصال بالخادم: $reason", Toast.LENGTH_LONG).show()

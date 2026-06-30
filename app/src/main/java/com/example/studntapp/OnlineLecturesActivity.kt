@@ -41,12 +41,16 @@ class OnlineLecturesActivity : BaseActivity() {
         rvLectures.layoutManager = LinearLayoutManager(this)
 
         loadOnlineRooms()
+        
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.setOnRefreshListener { loadOnlineRooms() }
     }
 
     private fun loadOnlineRooms() {
         RetrofitClient.instance.getSubjects(userId = userId, role = role)
             .enqueue(object : Callback<SubjectListResponse> {
                 override fun onResponse(call: Call<SubjectListResponse>, response: Response<SubjectListResponse>) {
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
                     if (response.isSuccessful && response.body()?.status == "success") {
                         val subjects = response.body()?.data ?: emptyList()
 
@@ -75,7 +79,8 @@ class OnlineLecturesActivity : BaseActivity() {
                     }
                 }
                 override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
-                    Toast.makeText(this@OnlineLecturesActivity, "فشل الاتصال بالخادم", Toast.LENGTH_SHORT).show()
+                    findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefresh)?.isRefreshing = false
+                    Toast.makeText(this@OnlineLecturesActivity, "خطأ في الاتصال بالخادم", Toast.LENGTH_SHORT).show()
                 }
             })
     }
