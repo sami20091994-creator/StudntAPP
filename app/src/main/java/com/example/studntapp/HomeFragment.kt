@@ -41,10 +41,9 @@ class HomeFragment : Fragment() {
         val tvWelcome: TextView = view.findViewById(R.id.tvWelcome)
         tvWelcome.text = if (userName.isEmpty()) "مرحباً بك" else "مرحباً بك، $userName"
 
-        // الضغط على الاسم → صفحة التقرير الأكاديمي.
+        // الضغط على الاسم → تبويب التقرير (زر أقصى اليسار في الشريط السفلي = ReportFragment).
         view.findViewById<View>(R.id.welcomeBlock).setOnClickListener {
-            startActivity(Intent(ctx, ReportActivity::class.java))
-            requireActivity().overridePendingTransition(R.anim.slide_in, R.anim.slide_out)
+            (requireActivity() as? HomeShellActivity)?.goToTab(3)
         }
 
         // نسبة التقييم (المعدل التراكمي) يسار البطاقة.
@@ -110,23 +109,19 @@ class HomeFragment : Fragment() {
         })
     }
 
-    /** المعدل العام — يُورَّث من صفحة تقرير الأداء (ReportFragment) لنفس الطالب، وإلا يُجلب من الخادم. */
+    /** المعدل العام — نفس قيمة الـ API لصفحة التقرير (get_report_data, subject_id=0). قيمة حيّة فقط، بلا كاش. */
     private fun loadEvalPercent(studentId: Int, tv: TextView) {
-        // اعرض القيمة المخزَّنة فقط إن كانت لنفس الطالب الحالي (تفادي قيمة قديمة من جلسة سابقة).
-        ReportFragment.averageFor(studentId)?.let { tv.text = "$it%" }
+        tv.text = "--%"
         RetrofitClient.instance.getReportData(studentId = studentId, subjectId = 0)
             .enqueue(object : Callback<ReportResponse> {
                 override fun onResponse(call: Call<ReportResponse>, response: Response<ReportResponse>) {
                     if (!isAdded) return
-                    if (response.isSuccessful && response.body()?.status == "success") {
-                        val avg = response.body()?.data?.average ?: 0.0
-                        ReportFragment.setAverage(studentId, avg)
-                        tv.text = "$avg%"
-                    }
+                    tv.text = if (response.isSuccessful && response.body()?.status == "success")
+                        "${response.body()?.data?.average ?: 0.0}%" else "--%"
                 }
                 override fun onFailure(call: Call<ReportResponse>, t: Throwable) {
                     if (!isAdded) return
-                    if (ReportFragment.averageFor(studentId) == null) tv.text = "--%"
+                    tv.text = "--%"
                 }
             })
     }

@@ -76,6 +76,11 @@ class HomeShellActivity : BaseActivity() {
         if (::pager.isInitialized && page in 0..3) pager.setCurrentItem(page, false)
     }
 
+    /** تبديل علني لصفحة الـ ViewPager (يُستدعى من الأجزاء، مثل الضغط على الاسم في الرئيسية). */
+    fun goToTab(index: Int) {
+        if (::pager.isInitialized && index in 0..3) pager.currentItem = index
+    }
+
     /** الضغط على تبويب يحرّك صفحة الـ ViewPager بدل فتح نشاط جديد. */
     override fun handleMainTab(index: Int): Boolean {
         if (::pager.isInitialized) {

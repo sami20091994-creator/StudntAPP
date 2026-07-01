@@ -24,6 +24,9 @@ import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.data.RadarData
+import com.github.mikephil.charting.data.RadarDataSet
+import com.github.mikephil.charting.data.RadarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import android.widget.Toast
@@ -61,6 +64,8 @@ class ReportFragment : Fragment() {
     private lateinit var tvHours: TextView
     private lateinit var lineChart: com.github.mikephil.charting.charts.LineChart
     private lateinit var barChart: com.github.mikephil.charting.charts.BarChart
+    private lateinit var radarChart: com.github.mikephil.charting.charts.RadarChart
+    private var radarCard: View? = null
     private lateinit var activeSubjectsContainer: LinearLayout
     private lateinit var completedSubjectsContainer: LinearLayout
     private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -154,22 +159,16 @@ class ReportFragment : Fragment() {
         filterCard.addView(textInputLayout)
         mainLayout.addView(filterCard)
 
-        val statsLayout = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 2f; setPadding(0, 30, 0, 30); layoutDirection = View.LAYOUT_DIRECTION_RTL }
-        val avgBox = statCard(ctx, primaryColor()).apply {
-            (layoutParams as LinearLayout.LayoutParams).marginEnd = 18
-        }
-        avgBox.addView(TextView(ctx).apply { text = "المعدل التراكمي"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
-        tvAverage = TextView(ctx).apply { text = "0%"; textSize = 30f; setTextColor(primaryColor()); setTypeface(null, Typeface.BOLD) }
-        avgBox.addView(tvAverage)
+        val statsLayout = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; weightSum = 1f; setPadding(0, 30, 0, 30); layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        // حقل المعدل يبقى للحساب/الكاش والعنوان، دون بطاقة ظاهرة (حُذفت بطاقة المعدل التراكمي).
+        tvAverage = TextView(ctx)
 
-        val quizBox = statCard(ctx, col(R.color.success_green)).apply {
-            (layoutParams as LinearLayout.LayoutParams).marginStart = 18
-        }
+        // بطاقة إجمالي الاختبارات ممدودة لكامل العرض (أقصى اليمين).
+        val quizBox = statCard(ctx, col(R.color.success_green))
         quizBox.addView(TextView(ctx).apply { text = "إجمالي الاختبارات"; setTextColor(col(R.color.ink_muted)); textSize = 14f })
         tvQuizzes = TextView(ctx).apply { text = "0"; textSize = 30f; setTextColor(col(R.color.success_green)); setTypeface(null, Typeface.BOLD) }
         quizBox.addView(tvQuizzes)
 
-        statsLayout.addView(avgBox)
         statsLayout.addView(quizBox)
         mainLayout.addView(statsLayout)
 
@@ -192,11 +191,18 @@ class ReportFragment : Fragment() {
         }
         mainLayout.addView(chartCard(ctx, "تطوّر الأداء عبر الوقت", lineChart))
 
-        // رسم بياني: مقارنتك مع زملائك
+        // رسم بياني: مقارنتك مع زملائك (ارتفاع أكبر ليتّسع لأسماء المحور المائلة)
         barChart = com.github.mikephil.charting.charts.BarChart(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(240))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(300))
         }
         mainLayout.addView(chartCard(ctx, "مقارنتك مع زملاء الصف", barChart))
+
+        // رسم عنكبوتي/راداري: معدّل الطالب بكل مادة (يظهر فقط مع "جميع المواد" و3 مواد نشطة فأكثر)
+        radarChart = com.github.mikephil.charting.charts.RadarChart(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(300))
+        }
+        radarCard = chartCard(ctx, "مستواك في كل مادة", radarChart).apply { visibility = View.GONE }
+        mainLayout.addView(radarCard)
 
         // البطاقتان عمودياً: قيد الدراسة أولاً ثم المكتملة
         activeSubjectsContainer = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
@@ -420,6 +426,9 @@ class ReportFragment : Fragment() {
                     if (labels.isNotEmpty()) {
                         subjectAutoComplete.setText(labels[0], false)
                     }
+                    // جلب المعدل العام تلقائياً عند فتح الصفحة (بدل انتظار اختيار المستخدم).
+                    currentSelectedSubjectId = 0
+                    loadReportData()
                 }
             }
             override fun onFailure(call: Call<SubjectListResponse>, t: Throwable) {
@@ -446,6 +455,7 @@ class ReportFragment : Fragment() {
                     populateComparisonChart(data?.comparison)
 
                     val performanceMap = data?.subjects?.associateBy { it.subjectName ?: "" } ?: emptyMap()
+                    updateRadarChart(performanceMap)
                     renderEnrolledSubjects(performanceMap) // إغناء بالدرجات
                 }
             }
@@ -507,10 +517,56 @@ class ReportFragment : Fragment() {
             axisLeft.axisMinimum = 0f; axisLeft.axisMaximum = 100f; axisLeft.textColor = chartTextColor()
             xAxis.position = XAxis.XAxisPosition.BOTTOM; xAxis.granularity = 1f; xAxis.textColor = chartTextColor()
             xAxis.setLabelRotationAngle(-40f)
+            xAxis.setAvoidFirstLastClipping(true)
             xAxis.valueFormatter = IndexAxisValueFormatter(data.map { (it.name ?: "").take(8) })
             legend.isEnabled = false
+            setExtraBottomOffset(28f) // مساحة أسفل كافية للأسماء المائلة كي لا تُقطع
             setNoDataText("لا توجد بيانات مقارنة"); setNoDataTextColor(chartTextColor())
             setFitBars(true); animateY(600); invalidate()
+        }
+    }
+
+    /**
+     * رسم عنكبوتي: معدّل الطالب في كل مادة نشطة.
+     * يظهر فقط عند اختيار "جميع المواد" (subject 0) ووجود 3 مواد نشطة فأكثر.
+     */
+    private fun updateRadarChart(performanceMap: Map<String, SubjectPerformance>) {
+        if (!::radarChart.isInitialized) return
+
+        // المواد النشطة فقط، مع معدّلها (0 إن لا درجات).
+        val activePairs = allEnrolledSubjects
+            .filter { (it.status ?: "active").lowercase() == "active" }
+            .map { (it.subjectName ?: "مادة") to (performanceMap[it.subjectName ?: ""]?.avgPercentage ?: 0.0) }
+
+        if (currentSelectedSubjectId != 0 || activePairs.size < 3) {
+            radarCard?.visibility = View.GONE
+            return
+        }
+        radarCard?.visibility = View.VISIBLE
+
+        // لون زاهٍ مميّز (وردي/ماجنتا) لا يتعارض مع البنفسجي/الأخضر/الذهبي في الثيمات.
+        val accent = android.graphics.Color.parseColor("#FF4081")
+        val entries = activePairs.map { RadarEntry(it.second.toFloat()) }
+        val set = RadarDataSet(entries, "معدّلك %").apply {
+            color = accent
+            fillColor = accent
+            setDrawFilled(true)
+            fillAlpha = 90
+            lineWidth = 2.5f
+            valueTextColor = col(R.color.ink)
+            valueTextSize = 10f
+        }
+        radarChart.apply {
+            data = RadarData(set)
+            description.isEnabled = false
+            webColor = col(R.color.line); webColorInner = col(R.color.line); webLineWidth = 1f; webLineWidthInner = 1f
+            yAxis.axisMinimum = 0f; yAxis.axisMaximum = 100f
+            yAxis.setDrawLabels(false)
+            xAxis.textColor = col(R.color.ink); xAxis.textSize = 11f
+            xAxis.valueFormatter = IndexAxisValueFormatter(activePairs.map { it.first.take(10) })
+            legend.textColor = col(R.color.ink)
+            setNoDataText("لا توجد بيانات"); setNoDataTextColor(chartTextColor())
+            animateXY(500, 500); invalidate()
         }
     }
 
